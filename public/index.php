@@ -28,6 +28,7 @@ spl_autoload_register(function ($class) {
 });
 
 require_once __DIR__ . '/../app/Controllers/Auth/LoginController.php';
+require_once __DIR__ . '/../app/Controllers/Auth/RegisterController.php';
 
 // 4. Run migrations 
 require_once __DIR__ . '/../db/run_migrations.php';
@@ -38,6 +39,7 @@ $page = $_GET['page'] ?? 'login'; // Default to login page
 // Very basic routing logic:
 switch ($page) {
     case 'login':
+        redirectAuthenticatedUser();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             require_once __DIR__ . '/../app/Controllers/Auth/LoginController.php';
             $loginController = 'LoginController';
@@ -46,12 +48,16 @@ switch ($page) {
         include __DIR__ . '/../views/login.php';
         break;
     case 'register':
+        redirectAuthenticatedUser();
+        $registerController = 'RegisterController';
+        $registerState = $registerController::handleRequest();
+        $success = $registerState['success'];
+        $errors = $registerState['errors'];
         include __DIR__ . '/../views/register.php';
         break;
     case 'forgot-password':
-        SessionHelper::flash('flash_error', 'Forgot password is not implemented yet.');
-        header('Location: ?page=login');
-        exit;
+        include __DIR__ . '/../views/forgot_password.php';
+        break;
     case 'dashboard':
         HomeController::index();
         break;

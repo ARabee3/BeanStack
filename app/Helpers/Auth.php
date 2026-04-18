@@ -10,6 +10,19 @@ if (!function_exists('requireLogin')) {
   }
 }
 
+if (!function_exists('redirectAuthenticatedUser')) {
+  function redirectAuthenticatedUser(): void
+  {
+    if (empty($_SESSION['user_id'])) {
+      return;
+    }
+
+    $destination = ($_SESSION['role'] ?? '') === 'admin' ? '?page=products' : '?page=home';
+    header('Location: ' . $destination);
+    exit;
+  }
+}
+
 if (!function_exists('requireAdmin')) {
   function requireAdmin(): void
   {
