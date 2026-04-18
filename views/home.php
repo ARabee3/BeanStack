@@ -6,6 +6,9 @@
  * Right: search bar + featured row + product grid
  */
 
+$rooms = $rooms ?? [];
+$products = $products ?? [];
+
 include __DIR__ . '/layouts/header.php';
 ?>
 

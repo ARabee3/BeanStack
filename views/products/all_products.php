@@ -6,6 +6,8 @@
  * "Add product" link top-right, pagination bottom
  */
 
+$products = $products ?? [];
+
 include __DIR__ . '/../layouts/header.php';
 ?>
 
