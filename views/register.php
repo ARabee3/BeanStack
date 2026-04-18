@@ -160,7 +160,7 @@ $errors = $errors ?? [];
                     </div>
                 <?php endif; ?>
 
-                <form method="POST" enctype="multipart/form-data" class="needs-validation" novalidate id="regForm">
+                <form method="POST" action="?page=register" enctype="multipart/form-data" class="needs-validation" novalidate id="regForm">
 
                     <!-- ── SECTION 1: Personal Info ── -->
                     <p class="text-uppercase fw-semibold text-muted mb-3" style="font-size:.7rem;letter-spacing:.1em;">
@@ -278,12 +278,12 @@ $errors = $errors ?? [];
                     <!-- Terms -->
                     <div class="mb-4">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="terms" required />
+                            <input class="form-check-input <?= isset($errors['terms']) ? 'is-invalid' : '' ?>" type="checkbox" id="terms" name="terms" <?= isset($_POST['terms']) ? 'checked' : '' ?> required />
                             <label class="form-check-label small" for="terms">
                                 I agree to the <a href="#" class="text-warning fw-semibold text-decoration-none">Terms of Service</a>
                                 and <a href="#" class="text-warning fw-semibold text-decoration-none">Privacy Policy</a>
                             </label>
-                            <div class="invalid-feedback">You must accept the terms to continue.</div>
+                            <div class="invalid-feedback"><?= htmlspecialchars($errors['terms'] ?? 'You must accept the terms to continue.') ?></div>
                         </div>
                     </div>
 
@@ -302,6 +302,93 @@ $errors = $errors ?? [];
     </div><!-- /container -->
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        function togglePass(inputId, iconId) {
+            const field = document.getElementById(inputId);
+            const icon = document.getElementById(iconId);
+            if (!field || !icon) return;
+
+            if (field.type === 'password') {
+                field.type = 'text';
+                icon.className = 'bi bi-eye-slash';
+            } else {
+                field.type = 'password';
+                icon.className = 'bi bi-eye';
+            }
+        }
+
+        function previewAvatar(input) {
+            const file = input.files && input.files[0] ? input.files[0] : null;
+            const preview = document.getElementById('avatarPreview');
+            const placeholder = document.getElementById('avatarPlaceholder');
+
+            if (!file || !preview || !placeholder) return;
+
+            preview.src = URL.createObjectURL(file);
+            preview.classList.remove('d-none');
+            placeholder.classList.add('d-none');
+        }
+
+        function checkStrength(value) {
+            const bar = document.getElementById('strengthBar');
+            const label = document.getElementById('strengthLabel');
+            if (!bar || !label) return;
+
+            let score = 0;
+            if (value.length >= 8) score++;
+            if (/[A-Z]/.test(value)) score++;
+            if (/[0-9]/.test(value)) score++;
+            if (/[^A-Za-z0-9]/.test(value)) score++;
+
+            const map = {
+                0: {
+                    width: '0%',
+                    text: 'Enter a password',
+                    color: '#dc3545'
+                },
+                1: {
+                    width: '25%',
+                    text: 'Weak',
+                    color: '#dc3545'
+                },
+                2: {
+                    width: '50%',
+                    text: 'Fair',
+                    color: '#fd7e14'
+                },
+                3: {
+                    width: '75%',
+                    text: 'Good',
+                    color: '#ffc107'
+                },
+                4: {
+                    width: '100%',
+                    text: 'Strong',
+                    color: '#198754'
+                },
+            };
+
+            const state = map[score];
+            bar.style.width = state.width;
+            bar.style.background = state.color;
+            label.textContent = state.text;
+        }
+
+        (function() {
+            'use strict';
+            const forms = document.querySelectorAll('.needs-validation');
+            forms.forEach(function(form) {
+                form.addEventListener('submit', function(event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        })();
+    </script>
 
 </body>
 
