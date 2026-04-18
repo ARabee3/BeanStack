@@ -34,15 +34,20 @@ $page = $_GET['page'] ?? 'login'; // Default to login page
 // Very basic routing logic:
 switch ($page) {
     case 'login':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            require_once __DIR__ . '/../app/Controllers/Auth/LoginController.php';
+            LoginController::handlePost();
+        }
         include __DIR__ . '/../views/login.php';
         break;
-    case 'dashboard':
-        include __DIR__ . '/../views/dashboard.php';
+    case 'home':
+        include __DIR__ . '/../views/home.php';
         break;
     case 'products':
-        include __DIR__ . '/../views/products.php';
+        include __DIR__ . '/../views/products/all_products.php';
         break;
     default:
+        http_response_code(404);
         echo "404 - Page Not Found";
         break;
 }
