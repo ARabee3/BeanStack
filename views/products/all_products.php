@@ -17,7 +17,7 @@ include __DIR__ . '/../layouts/header.php';
         <h4 class="fw-bold mb-0"><i class="bi bi-box-seam me-2 text-warning"></i>All Products</h4>
         <p class="text-muted small mb-0">Manage cafeteria menu items</p>
     </div>
-    <a href="add_product.php" class="btn btn-warning fw-semibold">
+    <a href="?page=add-product" class="btn btn-warning fw-semibold">
         <i class="bi bi-plus-lg me-1"></i>Add product
     </a>
 </div>
@@ -94,7 +94,7 @@ include __DIR__ . '/../layouts/header.php';
                                     <i class="bi <?= $p['available'] ? 'bi-check-circle' : 'bi-x-circle' ?> me-1"></i>
                                     <?= $p['available'] ? 'available' : 'unavailable' ?>
                                 </button>
-                                <a href="add_product.php?id=<?= $p['id'] ?>" class="btn btn-sm btn-outline-primary px-2">
+                                <a href="?page=add-product&id=<?= $p['id'] ?>" class="btn btn-sm btn-outline-primary px-2">
                                     <i class="bi bi-pencil"></i> edit
                                 </a>
                                 <button class="btn btn-sm btn-outline-danger px-2"
