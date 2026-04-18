@@ -302,7 +302,7 @@ $base = str_repeat('../', max(0, $pathDepth - 1));
                     <li>
                         <hr class="dropdown-divider" />
                     </li>
-                    <li><a class="dropdown-item text-danger" href="<?= $base ?>login.php">
+                    <li><a class="dropdown-item text-danger" href="?page=logout">
                             <i class="bi bi-box-arrow-right me-2"></i>Logout
                         </a></li>
                 </ul>
@@ -383,7 +383,7 @@ $base = str_repeat('../', max(0, $pathDepth - 1));
                 </a>
 
                 <div class="mt-auto px-3 pb-2">
-                    <a href="<?= $base ?>login.php" class="nav-link text-danger px-0 py-2">
+                    <a href="?page=logout" class="nav-link text-danger px-0 py-2">
                         <i class="bi bi-box-arrow-left"></i>Logout
                     </a>
                 </div>
