@@ -7,6 +7,8 @@
  */
 
 $products = $products ?? [];
+$pageTitle = $pageTitle ?? 'All Products';
+$activeNav = $activeNav ?? 'products';
 
 include __DIR__ . '/../layouts/header.php';
 ?>
