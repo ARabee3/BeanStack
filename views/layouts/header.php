@@ -238,7 +238,7 @@ $base = str_repeat('../', max(0, $pathDepth - 1));
     <nav class="topbar d-flex align-items-center px-3 px-lg-4 gap-3 sticky-top shadow-sm" style="z-index:1030;">
 
         <!-- Brand -->
-        <a href="<?= $base ?><?= $isAdmin ? 'admin/manual_order.php' : 'home.php' ?>"
+        <a href="<?= $isAdmin ? '?page=manual-order' : '?page=home' ?>"
             class="brand text-decoration-none me-auto me-lg-4">
             <i class="bi bi-cup-hot-fill text-warning me-1"></i>Cafe<span>ria</span>
         </a>
@@ -246,27 +246,27 @@ $base = str_repeat('../', max(0, $pathDepth - 1));
         <?php if ($isAdmin): ?>
             <!-- Admin nav links -->
             <div class="d-none d-lg-flex align-items-center gap-1">
-                <a href="<?= $base ?>admin/manual_order.php"
+                <a href="?page=manual-order"
                     class="nav-link px-3 py-1 rounded <?= $activeNav === 'home' ? 'fw-semibold text-dark' : '' ?>">
                     <i class="bi bi-house me-1"></i>Home
                 </a>
-                <a href="<?= $base ?>products/all_products.php"
+                <a href="?page=products"
                     class="nav-link px-3 py-1 rounded <?= $activeNav === 'products' ? 'fw-semibold text-dark' : '' ?>">
                     <i class="bi bi-box-seam me-1"></i>Products
                 </a>
-                <a href="<?= $base ?>users/all_users.php"
+                <a href="?page=users"
                     class="nav-link px-3 py-1 rounded <?= $activeNav === 'users' ? 'fw-semibold text-dark' : '' ?>">
                     <i class="bi bi-people me-1"></i>Users
                 </a>
-                <a href="<?= $base ?>admin/manual_order.php"
+                <a href="?page=manual-order"
                     class="nav-link px-3 py-1 rounded <?= $activeNav === 'manual' ? 'fw-semibold text-dark' : '' ?>">
                     <i class="bi bi-clipboard-plus me-1"></i>Manual Order
                 </a>
-                <a href="<?= $base ?>admin/checks.php"
+                <a href="?page=checks"
                     class="nav-link px-3 py-1 rounded <?= $activeNav === 'checks' ? 'fw-semibold text-dark' : '' ?>">
                     <i class="bi bi-bar-chart-line me-1"></i>Checks
                 </a>
-                <a href="<?= $base ?>admin/orders.php"
+                <a href="?page=orders"
                     class="nav-link px-3 py-1 rounded <?= $activeNav === 'orders' ? 'fw-semibold text-dark' : '' ?>">
                     <i class="bi bi-lightning-charge me-1"></i>Orders
                     <span class="badge bg-danger ms-1" id="liveCount">3</span>
@@ -275,11 +275,11 @@ $base = str_repeat('../', max(0, $pathDepth - 1));
         <?php else: ?>
             <!-- User nav links -->
             <div class="d-none d-lg-flex align-items-center gap-1">
-                <a href="<?= $base ?>home.php"
+                <a href="?page=home"
                     class="nav-link px-3 py-1 rounded <?= $activeNav === 'home' ? 'fw-semibold text-dark' : '' ?>">
                     <i class="bi bi-house me-1"></i>Home
                 </a>
-                <a href="<?= $base ?>orders/my_orders.php"
+                <a href="?page=my-orders"
                     class="nav-link px-3 py-1 rounded <?= $activeNav === 'myorders' ? 'fw-semibold text-dark' : '' ?>">
                     <i class="bi bi-receipt me-1"></i>My Orders
                 </a>
@@ -340,44 +340,44 @@ $base = str_repeat('../', max(0, $pathDepth - 1));
             <!-- ADMIN SIDEBAR -->
             <aside id="sidebar" class="d-none d-md-flex flex-column py-3 px-2">
                 <div class="sidebar-section mt-0">Navigation</div>
-                <a href="<?= $base ?>admin/manual_order.php"
+                <a href="?page=manual-order"
                     class="nav-link px-3 py-2 <?= $activeNav === 'home' ? 'active' : '' ?>">
                     <i class="bi bi-house"></i>Home
                 </a>
 
                 <div class="sidebar-section">Catalogue</div>
-                <a href="<?= $base ?>products/all_products.php"
+                <a href="?page=products"
                     class="nav-link px-3 py-2 <?= $activeNav === 'products' ? 'active' : '' ?>">
                     <i class="bi bi-box-seam"></i>All Products
                 </a>
-                <a href="<?= $base ?>products/add_product.php"
+                <a href="?page=add-product"
                     class="nav-link px-3 py-2 <?= $activeNav === 'addproduct' ? 'active' : '' ?>">
                     <i class="bi bi-plus-square"></i>Add Product
                 </a>
 
                 <div class="sidebar-section">People</div>
-                <a href="<?= $base ?>users/all_users.php"
+                <a href="?page=users"
                     class="nav-link px-3 py-2 <?= $activeNav === 'users' ? 'active' : '' ?>">
                     <i class="bi bi-people"></i>All Users
                 </a>
-                <a href="<?= $base ?>users/add_user.php"
+                <a href="?page=add-user"
                     class="nav-link px-3 py-2 <?= $activeNav === 'adduser' ? 'active' : '' ?>">
                     <i class="bi bi-person-plus"></i>Add User
                 </a>
 
                 <div class="sidebar-section">Orders</div>
-                <a href="<?= $base ?>admin/manual_order.php"
+                <a href="?page=manual-order"
                     class="nav-link px-3 py-2 <?= $activeNav === 'manual' ? 'active' : '' ?>">
                     <i class="bi bi-clipboard-plus"></i>Manual Order
                 </a>
-                <a href="<?= $base ?>admin/orders.php"
+                <a href="?page=orders"
                     class="nav-link px-3 py-2 <?= $activeNav === 'orders' ? 'active' : '' ?>">
                     <i class="bi bi-lightning-charge"></i>Live Orders
                     <span class="badge bg-danger ms-auto">3</span>
                 </a>
 
                 <div class="sidebar-section">Reports</div>
-                <a href="<?= $base ?>admin/checks.php"
+                <a href="?page=checks"
                     class="nav-link px-3 py-2 <?= $activeNav === 'checks' ? 'active' : '' ?>">
                     <i class="bi bi-bar-chart-line"></i>Checks
                 </a>

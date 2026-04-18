@@ -133,7 +133,7 @@ $oldEmail = SessionHelper::pull('old_email', '');
                     <div class="mb-3">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <label class="form-label fw-semibold small mb-0" for="password">Password</label>
-                            <a href="forgot_password.php" class="small text-warning text-decoration-none">Forget Password?</a>
+                            <a href="?page=forgot-password" class="small text-warning text-decoration-none">Forget Password?</a>
                         </div>
                         <div class="input-group">
                             <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock text-muted"></i></span>
@@ -161,7 +161,7 @@ $oldEmail = SessionHelper::pull('old_email', '');
 
                 <div class="text-center mt-4 small text-muted">
                     Don't have an account?
-                    <a href="register.php" class="text-warning fw-semibold text-decoration-none">Register</a>
+                    <a href="?page=register" class="text-warning fw-semibold text-decoration-none">Register</a>
                 </div>
             </div>
         </div>
