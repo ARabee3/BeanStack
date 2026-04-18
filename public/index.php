@@ -25,7 +25,10 @@ spl_autoload_register(function ($class) {
     }
 });
 
-// 4. Basic Router
+// 4. Run migrations 
+require_once __DIR__ . '/../db/run_migrations.php';
+
+// 5. Basic Router
 $page = $_GET['page'] ?? 'login'; // Default to login page
 
 // Very basic routing logic:

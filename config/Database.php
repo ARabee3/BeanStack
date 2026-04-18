@@ -1,28 +1,37 @@
 <?php
 
+require_once __DIR__ . "/../vendor/autoload.php";
+
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . "/..");
+$dotenv->load();
+
 class Database {
-    private static $host = 'localhost';
-    private static $db_name = 'cafeteria_db'; // Change this to your database name
-    private static $username = 'root';        // Change this to your DB user
-    private static $password = '';            // Change this to your DB password
-    private static $conn;
+    private static $conn = null;
 
     public static function connect() {
+
         if (self::$conn === null) {
+
+            $host = $_ENV["DB_HOST"];
+            $db_name = $_ENV["DB_NAME"];
+            $username = $_ENV["DB_USER"];
+            $password = $_ENV["DB_PASS"];
+
             try {
                 self::$conn = new PDO(
-                    "mysql:host=" . self::$host . ";dbname=" . self::$db_name,
-                    self::$username,
-                    self::$password
+                    "mysql:host=$host;dbname=$db_name",
+                    $username,
+                    $password
                 );
-                // Set the PDO error mode to exception
+
                 self::$conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-                // Default fetch mode to associative array
                 self::$conn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+
             } catch (PDOException $e) {
                 die("Connection failed: " . $e->getMessage());
             }
         }
+
         return self::$conn;
     }
 }
