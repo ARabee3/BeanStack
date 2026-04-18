@@ -7,7 +7,7 @@
  */
 
 $pageTitle = $pageTitle ?? 'Add User';
-$activeNav = $activeNav ?? 'adduser';
+$activeNav = $activeNav ?? 'users';
 $editId = isset($editId) ? (int) $editId : (int) ($_GET['id'] ?? 0);
 $success = $success ?? false;
 $errors = $errors ?? [];
