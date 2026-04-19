@@ -1,24 +1,5 @@
 <?php
-/**
- * app/Controllers/OrderController.php
- *
- * تعديلات على حسب الجداول الفعلية:
- *
- *  [1] location_snapshot:
- *      الجدول فيه column اسمه location_snapshot (TEXT).
- *      الكود القديم مكنش بيحفظه.
- *      الحل: جلب details من جدول locations وحفظه في location_snapshot.
- *
- *  [2] notes و location_id:
- *      ممكن ييجوا undefined من الـ payload.
- *      الحل: ?? null بدل ما يطلع error.
- *
- *  [3] status ENUM:
- *      القيم الصح: 'processing', 'out_for_delivery', 'canceled', 'done'
- *      الكود بيحفظ 'processing' افتراضياً — صح.
- *
- *  باقي الكود لم يتغير.
- */
+
 
 header('Content-Type: application/json');
 session_start();
@@ -26,15 +7,13 @@ require_once __DIR__ . '/../../config/Database.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 
-// ═══════════════════════════════════════════════════════
-// GET — إرجاع أوردرات الـ user الحالي
-// ═══════════════════════════════════════════════════════
+
 if ($method === 'GET') {
     if (!isset($_SESSION['user_id'])) {
         echo json_encode(['success' => false, 'message' => 'Unauthorized']);
         exit;
     }
-
+   
     try {
         $db     = Database::connect();
         $userId = $_SESSION['user_id'];
@@ -59,9 +38,6 @@ if ($method === 'GET') {
     exit;
 }
 
-// ═══════════════════════════════════════════════════════
-// POST — حفظ أوردر جديد
-// ═══════════════════════════════════════════════════════
 
 $data = json_decode(file_get_contents('php://input'), true);
 
@@ -70,6 +46,7 @@ if (!$data || empty($data['products'])) {
     exit;
 }
 
+
 if (!isset($_SESSION['user_id'])) {
     echo json_encode([
         'success' => false,
@@ -77,8 +54,8 @@ if (!isset($_SESSION['user_id'])) {
     ]);
     exit;
 }
-
-// ── تحديد userId: session أو target (admin mode) ─────────
+ $locationId =$data['location_id'] ?? null;
+$notes      = $data['notes'] ?? null;
 $userId = $_SESSION['user_id'];
 
 if (isset($data['target_user_id'])) {
@@ -112,24 +89,9 @@ if (isset($data['target_user_id'])) {
     $userId = $targetId;
 }
 
-// ── التعديل [2]: null-safe للحقول الاختيارية ─────────────
-// الجدول: notes TEXT DEFAULT NULL  → nullable ✓
-// الجدول: location_id INT          → nullable ✓
-// لو الـ payload ما فيهومش → null بدل undefined error
-$notes      = $data['notes']       ?? null;
-$locationId = $data['location_id'] ?? null;
-
-// ═══════════════════════════════════════════════════════
-// حفظ الأوردر في الـ DB
-// ═══════════════════════════════════════════════════════
 try {
     $db = Database::connect();
     $db->beginTransaction();
-
-    // ── التعديل [1]: جلب location_snapshot ───────────────
-    // الجدول فيه column اسمه location_snapshot (TEXT).
-    // بنجيب details من جدول locations ونحفظه snapshot
-    // لأن الـ location ممكن يتغير أو يتمسح بعدين.
     $locationSnapshot = null;
 
     if ($locationId) {
@@ -137,19 +99,16 @@ try {
         $locStmt->execute([$locationId]);
         $loc = $locStmt->fetch(PDO::FETCH_ASSOC);
         if ($loc) {
-            $locationSnapshot = $loc['details'];   // TEXT — اسم الأوضة وقت الأوردر
+            $locationSnapshot = $loc['details'];   
         }
     }
 
-    // 1. حساب الـ Total Price
     $total = 0;
     foreach ($data['products'] as $item) {
         $total += ($item['qty'] * $item['price']);
     }
 
-    // 2. INSERT الأوردر الرئيسي
-    // ── التعديل [1]: أضفنا location_snapshot في الـ INSERT ─
-    $sqlOrder = "INSERT INTO orders
+     $sqlOrder = "INSERT INTO orders
                      (user_id, total_price, notes, location_id, location_snapshot, status)
                  VALUES
                      (?, ?, ?, ?, ?, 'processing')";
@@ -158,14 +117,13 @@ try {
     $stmt->execute([
         $userId,
         $total,
-        $notes,               // [2] null-safe
-        $locationId,          // [2] null-safe
-        $locationSnapshot,    // [1] snapshot نص الأوضة
+        $notes,               
+        $locationId,         
+        $locationSnapshot,   
     ]);
 
     $orderId = $db->lastInsertId();
 
-    // 3. INSERT order_items — لم يتغير
     $sqlItems = "INSERT INTO order_items
                      (order_id, product_id, quantity, price_at_purchase)
                  VALUES (?, ?, ?, ?)";
