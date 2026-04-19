@@ -224,15 +224,32 @@ class OrderController
             if ($loc) $locationSnapshot = $loc['details'];
         }
 
-        // ── Calculate total ───────────────────────────────────────────────
+        // ── Calculate total and verify prices from DB ─────────────────────
+        $db = self::db();
         $total = 0;
-        foreach ($data['products'] as $item) {
-            $total += ((float)$item['price']) * ((int)$item['qty']);
+        $productIds = array_keys($data['products']);
+        
+        if (empty($productIds)) {
+            self::jsonResponse(['success' => false, 'message' => 'Invalid cart data.'], 422);
         }
+
+        // Fetch "source of truth" prices for all items in the cart
+        $placeholders = implode(',', array_fill(0, count($productIds), '?'));
+        $priceStmt = $db->prepare("SELECT id, price FROM products WHERE id IN ($placeholders)");
+        $priceStmt->execute($productIds);
+        $verifiedPrices = $priceStmt->fetchAll(PDO::FETCH_KEY_PAIR); // [id => price]
+
+        foreach ($data['products'] as $productId => &$item) {
+            if (!isset($verifiedPrices[$productId])) {
+                self::jsonResponse(['success' => false, 'message' => "Product ID $productId not found."], 422);
+            }
+            $item['verified_price'] = (float) $verifiedPrices[$productId];
+            $total += $item['verified_price'] * (int)$item['qty'];
+        }
+        unset($item); // break reference
 
         // ── Insert order + items ──────────────────────────────────────────
         try {
-            $db = self::db();
             $db->beginTransaction();
 
             $db->prepare(
@@ -258,7 +275,7 @@ class OrderController
                     $orderId,
                     (int) $productId,
                     (int) $details['qty'],
-                    (float) $details['price'],
+                    $details['verified_price'],
                 ]);
             }
 
