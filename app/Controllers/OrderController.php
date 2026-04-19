@@ -379,33 +379,8 @@ class OrderController
     {
         requireLogin();
 
-        $db     = self::db();
-        $userId = (int) $_SESSION['user_id'];
-
-        $stmt = $db->prepare(
-            "SELECT o.id, o.order_date, o.status, o.total_price, o.notes,
-                    o.location_snapshot
-             FROM orders o
-             WHERE o.user_id = :uid
-             ORDER BY o.order_date DESC"
-        );
-        $stmt->execute([':uid' => $userId]);
-        $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // Fetch items for each order
-        $itemStmt = $db->prepare(
-            "SELECT oi.quantity, oi.price_at_purchase AS price, p.name, p.image
-             FROM order_items oi
-             JOIN products p ON p.id = oi.product_id
-             WHERE oi.order_id = :oid"
-        );
-
-        foreach ($orders as &$o) {
-            $itemStmt->execute([':oid' => $o['id']]);
-            $o['items'] = $itemStmt->fetchAll(PDO::FETCH_ASSOC);
-        }
-        unset($o);
-
+        // The view handles its own AJAX branch and normal page render.
+        // No data pre-fetching needed — everything is loaded via AJAX on the client.
         $pageTitle = 'My Orders';
         $activeNav = 'my-orders';
 
