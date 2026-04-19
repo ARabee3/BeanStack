@@ -4,6 +4,32 @@ session_start();
 
 // Path to your Database class
 require_once __DIR__ . '/../../config/Database.php'; 
+$method = $_SERVER['REQUEST_METHOD'];
+// For GET requests, we return the user's order history
+if ($method === 'GET') {
+    if (!isset($_SESSION['user_id'])) {
+        echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+        exit;
+    }
+
+    try {
+        $db = Database::connect();
+        $userId = $_SESSION['user_id'];
+        
+        $sql = "SELECT o.id, o.order_date as date, o.status, o.total_price as amount 
+                FROM orders o 
+                WHERE o.user_id = ? 
+                ORDER BY o.order_date DESC";
+        $stmt = $db->prepare($sql);
+        $stmt->execute([$userId]);
+        $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        echo json_encode(['success' => true, 'orders' => $orders]);
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    }
+    exit;
+}
 
 $data = json_decode(file_get_contents('php://input'), true);
 
