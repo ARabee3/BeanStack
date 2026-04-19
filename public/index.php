@@ -64,32 +64,224 @@ switch ($page) {
     case 'home':
         HomeController::index();
         break;
-    case 'products':
-        ProductController::index();
+
+    // Products Operations : 
+        case 'products':
+        requireLogin();                 // or requireAdmin() if only admins see it
+        ProductController::index();     // fetches data + includes the view itself
         break;
+ 
+    // ── Add product form (GET) ────────────────────────────────────────────
     case 'add-product':
         requireAdmin();
+        // Pass categories so the dropdown is populated
+        $categories = Database::connect()
+            ->query("SELECT id, name FROM categories ORDER BY name")
+            ->fetchAll(PDO::FETCH_ASSOC);
+        $product = null;                // null = "add" mode in the view
         include __DIR__ . '/../views/products/add_product.php';
         break;
+ 
+    // ── Store new product (POST) ──────────────────────────────────────────
+    case 'store-product':
+        requireAdmin();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            ProductController::store(); // validates, inserts, redirects
+        } else {
+            header('Location: ?page=add-product');
+            exit;
+        }
+        break;
+ 
+    // ── Edit product form (GET) ───────────────────────────────────────────
+    case 'edit-product':
+        requireAdmin();
+        $id      = (int) ($_GET['id'] ?? 0);
+        $product = ProductController::show($id);
+        if (!$product) {
+            $_SESSION['flash'] = ['type' => 'danger', 'msg' => 'Product not found.'];
+            header('Location: ?page=products'); exit;
+        }
+        $categories = Database::connect()
+            ->query("SELECT id, name FROM categories ORDER BY name")
+            ->fetchAll(PDO::FETCH_ASSOC);
+        include __DIR__ . '/../views/products/add_product.php';
+        break;
+ 
+    // ── Update product (POST) ─────────────────────────────────────────────
+    case 'update-product':
+        requireAdmin();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            ProductController::update((int) ($_GET['id'] ?? 0));
+        } else {
+            header('Location: ?page=products'); exit;
+        }
+        break;
+ 
+    // ── Soft-delete product ───────────────────────────────────────────────
+    case 'delete-product':
+        requireAdmin();
+        ProductController::delete((int) ($_GET['id'] ?? 0));
+        break;
+ 
+    // ── Toggle availability (supports AJAX) ───────────────────────────────
+    case 'toggle-product':
+        requireAdmin();
+        ProductController::toggle((int) ($_GET['id'] ?? 0));
+        break;
+ 
+    // ── Add category (AJAX only, called from the modal in add_product.php) ─
+    case 'add-category':
+        requireAdmin();
+        header('Content-Type: application/json');
+        $catName = trim($_POST['name'] ?? '');
+        if ($catName === '') {
+            http_response_code(422);
+            echo json_encode(['error' => 'Category name is required.']);
+            exit;
+        }
+        try {
+            $db   = Database::connect();
+            $stmt = $db->prepare("INSERT INTO categories (name) VALUES (:name)");
+            $stmt->execute([':name' => $catName]);
+            $newId = (int) $db->lastInsertId();
+            echo json_encode(['id' => $newId, 'name' => $catName]);
+        } catch (PDOException $e) {
+            // Duplicate name → categories.name has a UNIQUE constraint
+            http_response_code(422);
+            echo json_encode(['error' => "Category \"$catName\" already exists."]);
+        }
+        exit;
+
+       // ── All users ─────────────────────────────────────────────────────────
     case 'users':
         requireAdmin();
-        include __DIR__ . '/../views/users/all_users.php';
+        UserController::index();        // fetches data + includes the view
         break;
+ 
+    // ── Add user form (GET) ───────────────────────────────────────────────
     case 'add-user':
         requireAdmin();
+        $user = null;                   // null = add mode
         include __DIR__ . '/../views/users/add_user.php';
         break;
+ 
+    // ── Store new user (POST) ─────────────────────────────────────────────
+    case 'store-user':
+        requireAdmin();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            UserController::store();
+        } else {
+            header('Location: ?page=add-user'); exit;
+        }
+        break;
+ 
+    // ── Edit user form (GET) ──────────────────────────────────────────────
+    case 'edit-user':
+        requireAdmin();
+        $id   = (int) ($_GET['id'] ?? 0);
+        $user = UserController::show($id);
+        if (!$user) {
+            $_SESSION['flash'] = ['type' => 'danger', 'msg' => 'User not found.'];
+            header('Location: ?page=users'); exit;
+        }
+        include __DIR__ . '/../views/users/add_user.php';
+        break;
+ 
+    // ── Update user (POST) ────────────────────────────────────────────────
+    case 'update-user':
+        requireAdmin();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            UserController::update((int) ($_GET['id'] ?? 0));
+        } else {
+            header('Location: ?page=users'); exit;
+        }
+        break;
+ 
+    // ── Delete user ───────────────────────────────────────────────────────
+    case 'delete-user':
+        requireAdmin();
+        UserController::delete((int) ($_GET['id'] ?? 0));
+        break;
+ 
+    // ── Toggle active status (AJAX-aware) ─────────────────────────────────
+    case 'toggle-user':
+        requireAdmin();
+        UserController::toggleActive((int) ($_GET['id'] ?? 0));
+        break;
+
+// ── Admin order dashboard ─────────────────────────────────────────────
+    case 'orders':
+        requireAdmin();
+        OrderController::index();           // fetches data + includes view
+        break;
+ 
+    // ── Order items (AJAX — returns JSON) ─────────────────────────────────
+    case 'order-items':
+        requireAdmin();
+        OrderController::items();           // always JSON response
+        break;
+ 
+    // ── Store new order (POST + JSON body) ────────────────────────────────
+    case 'store-order':
+        requireLogin();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            OrderController::store();       // always JSON response
+        } else {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Method not allowed.']);
+            exit;
+        }
+        break;
+ 
+    // ── Update order status (AJAX-aware) ─────────────────────────────────
+    case 'update-order-status':
+        requireAdmin();
+        OrderController::updateStatus();    // JSON if AJAX, redirect otherwise
+        break;
+ 
+    // ── Cancel order ──────────────────────────────────────────────────────
+    case 'cancel-order':
+        requireAdmin();
+        OrderController::cancel();
+        break;
+ 
+    // ── Manual order form ─────────────────────────────────────────────────
     case 'manual-order':
         requireAdmin();
+        $db = Database::connect();
+ 
+        // Users (non-admin only — admin places order for employees)
+        $usersStmt = $db->query(
+            "SELECT id, name FROM users WHERE role = 'user' AND isActive = 1 ORDER BY name"
+        );
+        $users = $usersStmt->fetchAll(PDO::FETCH_ASSOC);
+ 
+        // Locations
+        $rooms = $db->query("SELECT id, details FROM locations ORDER BY details")
+                    ->fetchAll(PDO::FETCH_ASSOC);
+ 
+        // Available products
+        $products = $db->query(
+            "SELECT p.*, c.name AS category_name
+             FROM products p
+             LEFT JOIN categories c ON c.id = p.category_id
+             WHERE p.is_available = 1 AND p.is_deleted = 0
+             ORDER BY c.name, p.name"
+        )->fetchAll(PDO::FETCH_ASSOC);
+ 
+        // Categories for filter buttons
+        $categories = $db->query("SELECT id, name FROM categories ORDER BY name")
+                         ->fetchAll(PDO::FETCH_ASSOC);
+ 
+        $pageTitle = 'Manual Order';
+        $activeNav = 'manual-order';
         include __DIR__ . '/../views/admin/manual_order.php';
         break;
+
     case 'checks':
         requireAdmin();
         include __DIR__ . '/../views/admin/checks.php';
-        break;
-    case 'orders':
-        requireAdmin();
-        include __DIR__ . '/../views/admin/orders.php';
         break;
     case 'my-orders':
         requireLogin();

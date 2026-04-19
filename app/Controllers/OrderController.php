@@ -1,148 +1,414 @@
 <?php
 
+/**
+ * OrderController.php
+ * Handles all order operations for both users and admins.
+ * Place in: app/Controllers/OrderController.php
+ *
+ * Routes handled by index.php:
+ *   GET  ?page=orders              → index()        admin order dashboard
+ *   POST ?page=store-order         → store()        place order (user or admin-manual)
+ *   GET  ?page=update-order-status → updateStatus() change order status (AJAX-aware)
+ *   GET  ?page=cancel-order        → cancel()       cancel an order
+ *   GET  ?page=order-items         → items()        return order items as JSON (AJAX)
+ */
 
-header('Content-Type: application/json');
-session_start();
 require_once __DIR__ . '/../../config/Database.php';
 
-$method = $_SERVER['REQUEST_METHOD'];
+class OrderController
+{
+    // ------------------------------------------------------------------ //
+    //  Helpers
+    // ------------------------------------------------------------------ //
 
+    private static function db(): PDO
+    {
+        return Database::connect();
+    }
 
-if ($method === 'GET') {
-    if (!isset($_SESSION['user_id'])) {
-        echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+    private static function redirect(string $page, array $params = []): void
+    {
+        $query = http_build_query(array_merge(['page' => $page], $params));
+        $base  = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
+        header("Location: {$base}/index.php?{$query}");
         exit;
     }
-   
-    try {
-        $db     = Database::connect();
-        $userId = $_SESSION['user_id'];
 
-        $sql = "SELECT o.id,
-                       o.order_date  AS date,
-                       o.status,
-                       o.total_price AS amount
-                FROM   orders o
-                WHERE  o.user_id = ?
-                ORDER  BY o.order_date DESC";
+    private static function flashSuccess(string $msg): void
+    {
+        $_SESSION['flash'] = ['type' => 'success', 'msg' => $msg];
+    }
 
-        $stmt = $db->prepare($sql);
-        $stmt->execute([$userId]);
+    private static function flashError(string $msg): void
+    {
+        $_SESSION['flash'] = ['type' => 'danger', 'msg' => $msg];
+    }
+
+    private static function isAjax(): bool
+    {
+        return ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest';
+    }
+
+    private static function jsonResponse(array $data, int $status = 200): void
+    {
+        http_response_code($status);
+        header('Content-Type: application/json');
+        echo json_encode($data);
+        exit;
+    }
+
+    // ------------------------------------------------------------------ //
+    //  index()  —  GET ?page=orders   (admin dashboard)
+    // ------------------------------------------------------------------ //
+
+    public static function index(): void
+    {
+        requireAdmin();
+
+        $db = self::db();
+
+        // ── Filters ──────────────────────────────────────────────────────
+        $statusFilter = $_GET['status'] ?? '';
+        $search       = trim($_GET['search'] ?? '');
+
+        // ── Pagination ────────────────────────────────────────────────────
+        $perPage     = 15;
+        $currentPage = max(1, (int) ($_GET['p'] ?? 1));
+        $offset      = ($currentPage - 1) * $perPage;
+
+        $where  = ['1=1'];
+        $params = [];
+
+        if ($statusFilter !== '') {
+            $where[]           = 'o.status = :status';
+            $params[':status'] = $statusFilter;
+        }
+
+        if ($search !== '') {
+            $where[]           = 'u.name LIKE :search';
+            $params[':search'] = "%$search%";
+        }
+
+        $whereSQL = 'WHERE ' . implode(' AND ', $where);
+
+        // ── Count ─────────────────────────────────────────────────────────
+        $countStmt = $db->prepare(
+            "SELECT COUNT(DISTINCT o.id)
+             FROM orders o
+             JOIN users u ON u.id = o.user_id
+             $whereSQL"
+        );
+        $countStmt->execute($params);
+        $totalRows   = (int) $countStmt->fetchColumn();
+        $totalPages  = max(1, (int) ceil($totalRows / $perPage));
+        $currentPage = min($currentPage, $totalPages);
+
+        // ── Fetch orders (header info only — items fetched per-card via AJAX) ─
+        $stmt = $db->prepare(
+            "SELECT o.id,
+                    o.order_date,
+                    o.status,
+                    o.total_price,
+                    o.notes,
+                    o.location_snapshot,
+                    u.name  AS user_name,
+                    u.email AS user_email,
+                    l.details AS location
+             FROM orders o
+             JOIN users u ON u.id = o.user_id
+             LEFT JOIN locations l ON l.id = o.location_id
+             $whereSQL
+             ORDER BY
+               FIELD(o.status,'processing','out_for_delivery','done','canceled'),
+               o.order_date DESC
+             LIMIT :limit OFFSET :offset"
+        );
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v);
+        }
+        $stmt->bindValue(':limit',  $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset,  PDO::PARAM_INT);
+        $stmt->execute();
         $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        echo json_encode(['success' => true, 'orders' => $orders]);
+        // ── Status counts for the summary badges ─────────────────────────
+        $countByStatus = $db->query(
+            "SELECT status, COUNT(*) AS cnt FROM orders GROUP BY status"
+        )->fetchAll(PDO::FETCH_KEY_PAIR);
 
-    } catch (Exception $e) {
-        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
-    }
-    exit;
-}
+        $pageTitle = 'Orders';
+        $activeNav = 'orders';
 
-
-$data = json_decode(file_get_contents('php://input'), true);
-
-if (!$data || empty($data['products'])) {
-    echo json_encode(['success' => false, 'message' => 'Your cart is empty. Please add products.']);
-    exit;
-}
-
-
-if (!isset($_SESSION['user_id'])) {
-    echo json_encode([
-        'success' => false,
-        'message' => 'You are not a registered user. Please log in to place an order.'
-    ]);
-    exit;
-}
- $locationId =$data['location_id'] ?? null;
-$notes      = $data['notes'] ?? null;
-$userId = $_SESSION['user_id'];
-
-if (isset($data['target_user_id'])) {
-
-    if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-        echo json_encode(['success' => false, 'message' => 'Unauthorized. Only admins can place orders for other users.']);
-        exit;
+        include __DIR__ . '/../../views/admin/orders.php';
     }
 
-    $targetId = (int) $data['target_user_id'];
+    // ------------------------------------------------------------------ //
+    //  items()  —  GET ?page=order-items&id=X  (AJAX — returns JSON)
+    // ------------------------------------------------------------------ //
 
-    if ($targetId <= 0) {
-        echo json_encode(['success' => false, 'message' => 'Invalid user selected.']);
-        exit;
+    public static function items(): void
+    {
+        requireAdmin();
+
+        $id = (int) ($_GET['id'] ?? 0);
+
+        $stmt = self::db()->prepare(
+            "SELECT oi.quantity,
+                    oi.price_at_purchase AS price,
+                    p.name,
+                    p.image
+             FROM order_items oi
+             JOIN products p ON p.id = oi.product_id
+             WHERE oi.order_id = :id"
+        );
+        $stmt->execute([':id' => $id]);
+        $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        self::jsonResponse(['success' => true, 'items' => $items]);
     }
 
-    try {
-        $db    = Database::connect();
-        $check = $db->prepare("SELECT id FROM users WHERE id = ? AND role = 'user' LIMIT 1");
-        $check->execute([$targetId]);
+    // ------------------------------------------------------------------ //
+    //  store()  —  POST ?page=store-order
+    //  Works for both regular users and admin manual orders.
+    // ------------------------------------------------------------------ //
 
-        if (!$check->fetch()) {
-            echo json_encode(['success' => false, 'message' => 'Selected employee not found.']);
-            exit;
+    public static function store(): void
+    {
+        // Accept both JSON body (AJAX) and regular form POST
+        $isJsonRequest = str_contains($_SERVER['CONTENT_TYPE'] ?? '', 'application/json');
+
+        if ($isJsonRequest) {
+            $data = json_decode(file_get_contents('php://input'), true);
+        } else {
+            $data = $_POST;
+            // Decode products from JSON string when sent as a form field
+            if (isset($data['products']) && is_string($data['products'])) {
+                $data['products'] = json_decode($data['products'], true);
+            }
         }
-    } catch (Exception $e) {
-        echo json_encode(['success' => false, 'message' => 'Database Error: ' . $e->getMessage()]);
-        exit;
-    }
 
-    $userId = $targetId;
-}
+        // ── Auth ──────────────────────────────────────────────────────────
+        if (!isset($_SESSION['user_id'])) {
+            self::jsonResponse(['success' => false, 'message' => 'Not logged in.'], 401);
+        }
 
-try {
-    $db = Database::connect();
-    $db->beginTransaction();
-    $locationSnapshot = null;
+        // ── Validate cart ─────────────────────────────────────────────────
+        if (empty($data['products'])) {
+            self::jsonResponse(['success' => false, 'message' => 'Cart is empty.'], 422);
+        }
 
-    if ($locationId) {
-        $locStmt = $db->prepare("SELECT details FROM locations WHERE id = ? LIMIT 1");
-        $locStmt->execute([$locationId]);
-        $loc = $locStmt->fetch(PDO::FETCH_ASSOC);
-        if ($loc) {
-            $locationSnapshot = $loc['details'];   
+        // ── Determine target user ─────────────────────────────────────────
+        $userId = (int) $_SESSION['user_id'];
+
+        if (!empty($data['target_user_id'])) {
+            if (($_SESSION['role'] ?? '') !== 'admin') {
+                self::jsonResponse(['success' => false, 'message' => 'Unauthorized.'], 403);
+            }
+            $targetId = (int) $data['target_user_id'];
+            $chk = self::db()->prepare("SELECT id FROM users WHERE id = ? LIMIT 1");
+            $chk->execute([$targetId]);
+            if (!$chk->fetch()) {
+                self::jsonResponse(['success' => false, 'message' => 'Employee not found.'], 422);
+            }
+            $userId = $targetId;
+        }
+
+        // ── Location snapshot ─────────────────────────────────────────────
+        $locationId       = $data['location_id'] ? (int) $data['location_id'] : null;
+        $locationSnapshot = null;
+
+        if ($locationId) {
+            $locStmt = self::db()->prepare("SELECT details FROM locations WHERE id = ? LIMIT 1");
+            $locStmt->execute([$locationId]);
+            $loc = $locStmt->fetch(PDO::FETCH_ASSOC);
+            if ($loc) $locationSnapshot = $loc['details'];
+        }
+
+        // ── Calculate total and verify prices from DB ─────────────────────
+        $db = self::db();
+        $total = 0;
+        $productIds = array_keys($data['products']);
+        
+        if (empty($productIds)) {
+            self::jsonResponse(['success' => false, 'message' => 'Invalid cart data.'], 422);
+        }
+
+        // Fetch "source of truth" prices for all items in the cart
+        $placeholders = implode(',', array_fill(0, count($productIds), '?'));
+        $priceStmt = $db->prepare("SELECT id, price FROM products WHERE id IN ($placeholders)");
+        $priceStmt->execute($productIds);
+        $verifiedPrices = $priceStmt->fetchAll(PDO::FETCH_KEY_PAIR); // [id => price]
+
+        foreach ($data['products'] as $productId => &$item) {
+            if (!isset($verifiedPrices[$productId])) {
+                self::jsonResponse(['success' => false, 'message' => "Product ID $productId not found."], 422);
+            }
+            $item['verified_price'] = (float) $verifiedPrices[$productId];
+            $total += $item['verified_price'] * (int)$item['qty'];
+        }
+        unset($item); // break reference
+
+        // ── Insert order + items ──────────────────────────────────────────
+        try {
+            $db->beginTransaction();
+
+            $db->prepare(
+                "INSERT INTO orders
+                    (user_id, total_price, notes, location_id, location_snapshot, status, order_date)
+                 VALUES (?, ?, ?, ?, ?, 'processing', NOW())"
+            )->execute([
+                $userId,
+                $total,
+                $data['notes'] ?? null,
+                $locationId,
+                $locationSnapshot,
+            ]);
+
+            $orderId  = (int) $db->lastInsertId();
+            $itemStmt = $db->prepare(
+                "INSERT INTO order_items (order_id, product_id, quantity, price_at_purchase)
+                 VALUES (?, ?, ?, ?)"
+            );
+
+            foreach ($data['products'] as $productId => $details) {
+                $itemStmt->execute([
+                    $orderId,
+                    (int) $productId,
+                    (int) $details['qty'],
+                    $details['verified_price'],
+                ]);
+            }
+
+            $db->commit();
+            self::jsonResponse(['success' => true, 'order_id' => $orderId]);
+
+        } catch (Exception $e) {
+            $db->rollBack();
+            self::jsonResponse(['success' => false, 'message' => 'DB Error: ' . $e->getMessage()], 500);
         }
     }
 
-    $total = 0;
-    foreach ($data['products'] as $item) {
-        $total += ($item['qty'] * $item['price']);
+    // ------------------------------------------------------------------ //
+    //  updateStatus()  —  GET/POST ?page=update-order-status&id=X&status=Y
+    //  AJAX-aware: returns JSON if X-Requested-With header is set.
+    // ------------------------------------------------------------------ //
+
+    public static function updateStatus(): void
+    {
+        requireAdmin();
+
+        $id        = (int) ($_GET['id'] ?? 0);
+        $newStatus = $_GET['status'] ?? '';
+
+        $allowed = ['processing', 'out_for_delivery', 'done', 'canceled'];
+
+        if (!$id || !in_array($newStatus, $allowed, true)) {
+            if (self::isAjax()) {
+                self::jsonResponse(['success' => false, 'message' => 'Invalid request.'], 422);
+            }
+            self::flashError('Invalid status update request.');
+            self::redirect('orders');
+        }
+
+        $stmt = self::db()->prepare(
+            "SELECT id, status FROM orders WHERE id = :id"
+        );
+        $stmt->execute([':id' => $id]);
+        $order = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$order) {
+            if (self::isAjax()) {
+                self::jsonResponse(['success' => false, 'message' => 'Order not found.'], 404);
+            }
+            self::flashError('Order not found.');
+            self::redirect('orders');
+        }
+
+        self::db()->prepare("UPDATE orders SET status = :s WHERE id = :id")
+                  ->execute([':s' => $newStatus, ':id' => $id]);
+
+        if (self::isAjax()) {
+            self::jsonResponse(['success' => true, 'status' => $newStatus]);
+        }
+
+        self::flashSuccess("Order #$id status updated to $newStatus.");
+        self::redirect('orders');
     }
 
-     $sqlOrder = "INSERT INTO orders
-                     (user_id, total_price, notes, location_id, location_snapshot, status)
-                 VALUES
-                     (?, ?, ?, ?, ?, 'processing')";
+    // ------------------------------------------------------------------ //
+    //  cancel()  —  GET ?page=cancel-order&id=X
+    //  Convenience wrapper — only allowed on 'processing' orders.
+    // ------------------------------------------------------------------ //
 
-    $stmt = $db->prepare($sqlOrder);
-    $stmt->execute([
-        $userId,
-        $total,
-        $notes,               
-        $locationId,         
-        $locationSnapshot,   
-    ]);
+    public static function cancel(): void
+    {
+        requireAdmin();
 
-    $orderId = $db->lastInsertId();
+        $id = (int) ($_GET['id'] ?? 0);
 
-    $sqlItems = "INSERT INTO order_items
-                     (order_id, product_id, quantity, price_at_purchase)
-                 VALUES (?, ?, ?, ?)";
+        $stmt = self::db()->prepare("SELECT status FROM orders WHERE id = :id");
+        $stmt->execute([':id' => $id]);
+        $order = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    $stmtItem = $db->prepare($sqlItems);
+        if (!$order) {
+            self::flashError('Order not found.');
+            self::redirect('orders');
+        }
 
-    foreach ($data['products'] as $productId => $details) {
-        $stmtItem->execute([
-            $orderId,
-            $productId,
-            $details['qty'],
-            $details['price']
-        ]);
+        if ($order['status'] === 'done') {
+            self::flashError('Cannot cancel a completed order.');
+            self::redirect('orders');
+        }
+
+        self::db()->prepare("UPDATE orders SET status = 'canceled' WHERE id = :id")
+                  ->execute([':id' => $id]);
+
+        if (self::isAjax()) {
+            self::jsonResponse(['success' => true]);
+        }
+
+        self::flashSuccess("Order #$id has been canceled.");
+        self::redirect('orders');
     }
 
-    $db->commit();
-    echo json_encode(['success' => true, 'order_id' => $orderId]);
+    // ------------------------------------------------------------------ //
+    //  myOrders()  —  GET ?page=my-orders  (logged-in user)
+    // ------------------------------------------------------------------ //
 
-} catch (Exception $e) {
-    if (isset($db)) $db->rollBack();
-    echo json_encode(['success' => false, 'message' => 'Database Error: ' . $e->getMessage()]);
+    public static function myOrders(): void
+    {
+        requireLogin();
+
+        $db     = self::db();
+        $userId = (int) $_SESSION['user_id'];
+
+        $stmt = $db->prepare(
+            "SELECT o.id, o.order_date, o.status, o.total_price, o.notes,
+                    o.location_snapshot
+             FROM orders o
+             WHERE o.user_id = :uid
+             ORDER BY o.order_date DESC"
+        );
+        $stmt->execute([':uid' => $userId]);
+        $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Fetch items for each order
+        $itemStmt = $db->prepare(
+            "SELECT oi.quantity, oi.price_at_purchase AS price, p.name, p.image
+             FROM order_items oi
+             JOIN products p ON p.id = oi.product_id
+             WHERE oi.order_id = :oid"
+        );
+
+        foreach ($orders as &$o) {
+            $itemStmt->execute([':oid' => $o['id']]);
+            $o['items'] = $itemStmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+        unset($o);
+
+        $pageTitle = 'My Orders';
+        $activeNav = 'my-orders';
+
+        include __DIR__ . '/../../views/orders/my_orders.php';
+    }
 }
