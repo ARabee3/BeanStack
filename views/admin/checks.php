@@ -35,6 +35,30 @@ $perPage     = 10;
 $currentPage = max(1, (int) ($_GET['p'] ?? 1));
 $offset      = ($currentPage - 1) * $perPage;
 
+// ── AJAX Handler: Fetch orders for a user (Lazy Load) ──────────────────────
+if (($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest' && ($_GET['action'] ?? '') === 'get-user-orders') {
+    header('Content-Type: application/json');
+    $db = Database::connect();
+    $uid   = (int)($_GET['user_id'] ?? 0);
+    $dfrom = $_GET['date_from'] ?? '';
+    $dto   = $_GET['date_to']   ?? '';
+
+    $stmt = $db->prepare(
+        "SELECT o.id, o.order_date, o.total_price, o.location_snapshot,
+                l.details AS location
+         FROM orders o
+         LEFT JOIN locations l ON l.id = o.location_id
+         WHERE o.user_id = :uid
+           AND o.status  = 'done'
+           AND DATE(o.order_date) >= :dfrom
+           AND DATE(o.order_date) <= :dto
+         ORDER BY o.order_date DESC"
+    );
+    $stmt->execute([':uid' => $uid, ':dfrom' => $dfrom, ':dto' => $dto]);
+    echo json_encode(['success' => true, 'orders' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
+    exit;
+}
+
 // ── DB ────────────────────────────────────────────────────────────────────
 $db = Database::connect();
 
@@ -91,30 +115,6 @@ $stmt->bindValue(':lim', $perPage, PDO::PARAM_INT);
 $stmt->bindValue(':off', $offset,  PDO::PARAM_INT);
 $stmt->execute();
 $checksData = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-// ── For each user fetch their individual orders (header only) ─────────────
-// Items are lazy-loaded per order via AJAX (?page=order-items&id=X)
-$orderStmt = $db->prepare(
-    "SELECT o.id, o.order_date, o.total_price, o.location_snapshot,
-            l.details AS location
-     FROM orders o
-     LEFT JOIN locations l ON l.id = o.location_id
-     WHERE o.user_id = :uid
-       AND o.status  = 'done'
-       AND DATE(o.order_date) >= :dfrom
-       AND DATE(o.order_date) <= :dto
-     ORDER BY o.order_date DESC"
-);
-
-foreach ($checksData as &$row) {
-    $orderStmt->execute([
-        ':uid'   => $row['user_id'],
-        ':dfrom' => $dateFrom,
-        ':dto'   => $dateTo,
-    ]);
-    $row['orders'] = $orderStmt->fetchAll(PDO::FETCH_ASSOC);
-}
-unset($row);
 
 // ── Summary stats (across the full result-set, not just current page) ─────
 $summaryStmt = $db->prepare(
@@ -308,6 +308,7 @@ include __DIR__ . '/../layouts/header.php';
                         <td>
                             <button class="btn btn-sm btn-light border p-0 px-1 expand-btn"
                                     data-target="userDetail_<?= $userId ?>"
+                                    data-user-id="<?= $userId ?>"
                                     style="line-height:1.4;width:24px;">
                                 <i class="bi bi-chevron-right" style="font-size:.75rem;"></i>
                             </button>
@@ -343,88 +344,27 @@ include __DIR__ . '/../layouts/header.php';
                         </td>
                     </tr>
 
-                    <!-- ── Level 2: Orders for this user ─────────────────── -->
+                    <!-- ── Level 2: Orders for this user (Lazy Loaded) ───── -->
                     <tr id="userDetail_<?= $userId ?>" class="d-none">
                         <td colspan="4" class="p-0 ps-4 bg-light">
-                            <table class="table table-sm table-bordered mb-0">
-                                <thead class="table-secondary">
-                                    <tr>
-                                        <th style="width:36px;"></th>
-                                        <th>Order Date</th>
-                                        <th>Location</th>
-                                        <th class="text-end">Amount</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php if (empty($u['orders'])): ?>
+                            <div id="ordersLoader_<?= $userId ?>" class="text-center py-3 text-muted small">
+                                <span class="spinner-border spinner-border-sm me-1"></span> Loading orders…
+                            </div>
+                            <div id="ordersContent_<?= $userId ?>" style="display:none;">
+                                <table class="table table-sm table-bordered mb-0">
+                                    <thead class="table-secondary">
                                         <tr>
-                                            <td colspan="4" class="text-muted small text-center py-2">
-                                                No orders in this period.
-                                            </td>
+                                            <th style="width:36px;"></th>
+                                            <th>Order Date</th>
+                                            <th>Location</th>
+                                            <th class="text-end">Amount</th>
                                         </tr>
-                                    <?php endif; ?>
-
-                                    <?php foreach ($u['orders'] as $oi => $order):
-                                        $orderId = (int)$order['id'];
-                                        $loc = $order['location_snapshot'] ?? $order['location'] ?? '—';
-                                    ?>
-                                        <!-- Order header row -->
-                                        <tr id="orderRow_<?= $orderId ?>">
-                                            <td>
-                                                <button class="btn btn-sm btn-light border p-0 px-1 expand-btn"
-                                                        data-target="orderDetail_<?= $orderId ?>"
-                                                        data-order-id="<?= $orderId ?>"
-                                                        style="line-height:1.4;width:24px;">
-                                                    <i class="bi bi-chevron-right" style="font-size:.75rem;"></i>
-                                                </button>
-                                            </td>
-                                            <td class="small fw-semibold">
-                                                <i class="bi bi-receipt me-1 text-muted"></i>
-                                                #<?= $orderId ?>
-                                                &nbsp;·&nbsp;
-                                                <?= $order['order_date']
-                                                    ? date('d M Y, h:i A', strtotime($order['order_date']))
-                                                    : '—' ?>
-                                            </td>
-                                            <td class="small text-muted">
-                                                <?= htmlspecialchars($loc) ?>
-                                            </td>
-                                            <td class="text-end small fw-semibold">
-                                                <?= number_format((float)$order['total_price'], 2) ?> EGP
-                                            </td>
-                                        </tr>
-
-                                        <!-- Level 3: Product cards (lazy loaded) -->
-                                        <tr id="orderDetail_<?= $orderId ?>" class="d-none">
-                                            <td colspan="4" class="bg-white p-3">
-
-                                                <!-- Spinner shown until items load -->
-                                                <div id="itemsLoader_<?= $orderId ?>"
-                                                     class="text-center text-muted small py-2">
-                                                    <span class="spinner-border spinner-border-sm me-1"></span>
-                                                    Loading items…
-                                                </div>
-
-                                                <!-- Items injected here -->
-                                                <div id="itemsContent_<?= $orderId ?>"
-                                                     style="display:none;">
-                                                    <div class="d-flex gap-3 flex-wrap"
-                                                         id="itemCards_<?= $orderId ?>"></div>
-                                                    <div class="d-flex justify-content-end
-                                                                fw-bold small border-top pt-2 mt-2">
-                                                        Order Total:
-                                                        <span class="ms-2 text-warning">
-                                                            <?= number_format((float)$order['total_price'], 2) ?> EGP
-                                                        </span>
-                                                    </div>
-                                                </div>
-
-                                            </td>
-                                        </tr>
-
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody id="ordersTableBody_<?= $userId ?>">
+                                        <!-- Orders injected here -->
+                                    </tbody>
+                                </table>
+                            </div>
                         </td>
                     </tr>
 
@@ -465,9 +405,11 @@ include __DIR__ . '/../layouts/header.php';
 
 <!-- ── Scripts ────────────────────────────────────────────────────────────── -->
 <script>
+// Filter state for AJAX
+const DATE_FROM = '<?= $dateFrom ?>';
+const DATE_TO   = '<?= $dateTo ?>';
+
 // ── Generic expand/collapse ───────────────────────────────────────────────────
-// Handles both Level-1 (user) and Level-2 (order) expand buttons.
-// Level-2 buttons also carry data-order-id which triggers item lazy-load.
 document.querySelectorAll('.expand-btn').forEach(btn => {
     btn.addEventListener('click', async function () {
         const targetId = this.dataset.target;
@@ -480,19 +422,96 @@ document.querySelectorAll('.expand-btn').forEach(btn => {
         target.classList.toggle('d-none', isOpen);
         const icon = this.querySelector('i');
         if (icon) {
-            icon.className = isOpen
-                ? 'bi bi-chevron-right'
-                : 'bi bi-chevron-down';
+            icon.className = isOpen ? 'bi bi-chevron-right' : 'bi bi-chevron-down';
             icon.style.fontSize = '.75rem';
         }
 
-        // If this is an order-level expand and we're opening it → load items
-        const orderId = this.dataset.orderId;
-        if (!isOpen && orderId) {
-            await loadOrderItems(parseInt(orderId, 10));
+        if (!isOpen) {
+            const userId  = this.dataset.userId;
+            const orderId = this.dataset.orderId;
+            if (userId)  await loadUserOrders(parseInt(userId, 10));
+            if (orderId) await loadOrderItems(parseInt(orderId, 10));
         }
     });
 });
+
+// ── Lazy-load orders for a user via AJAX ──────────────────────────────────────
+const loadedUsers = new Set();
+async function loadUserOrders(userId) {
+    if (loadedUsers.has(userId)) return;
+
+    const loader  = document.getElementById(`ordersLoader_${userId}`);
+    const content = document.getElementById(`ordersContent_${userId}`);
+    const tbody   = document.getElementById(`ordersTableBody_${userId}`);
+
+    try {
+        const res = await fetch(`?page=checks&action=get-user-orders&user_id=${userId}&date_from=${DATE_FROM}&date_to=${DATE_TO}`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        const data = await res.json();
+
+        loader.style.display = 'none';
+        loadedUsers.add(userId);
+
+        if (!data.success || !data.orders || !data.orders.length) {
+            content.style.display = '';
+            tbody.innerHTML = '<tr><td colspan="4" class="text-muted small text-center py-2">No orders found.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = data.orders.map(order => {
+            const orderId = parseInt(order.id);
+            const loc = order.location_snapshot || order.location || '—';
+            const dateStr = order.order_date ? new Date(order.order_date).toLocaleString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit', hour12:true }) : '—';
+
+            return `
+                <tr id="orderRow_${orderId}">
+                    <td>
+                        <button class="btn btn-sm btn-light border p-0 px-1 expand-btn"
+                                data-target="orderDetail_${orderId}"
+                                data-order-id="${orderId}"
+                                style="line-height:1.4;width:24px;">
+                            <i class="bi bi-chevron-right" style="font-size:.75rem;"></i>
+                        </button>
+                    </td>
+                    <td class="small fw-semibold">
+                        <i class="bi bi-receipt me-1 text-muted"></i>#${orderId} &nbsp;·&nbsp; ${dateStr}
+                    </td>
+                    <td class="small text-muted">${escHtml(loc)}</td>
+                    <td class="text-end small fw-semibold">${parseFloat(order.total_price).toFixed(2)} EGP</td>
+                </tr>
+                <tr id="orderDetail_${orderId}" class="d-none">
+                    <td colspan="4" class="bg-white p-3">
+                        <div id="itemsLoader_${orderId}" class="text-center text-muted small py-2">
+                            <span class="spinner-border spinner-border-sm me-1"></span> Loading items…
+                        </div>
+                        <div id="itemsContent_${orderId}" style="display:none;">
+                            <div class="d-flex gap-3 flex-wrap" id="itemCards_${orderId}"></div>
+                            <div class="d-flex justify-content-end fw-bold small border-top pt-2 mt-2">
+                                Order Total: <span class="ms-2 text-warning">${parseFloat(order.total_price).toFixed(2)} EGP</span>
+                            </div>
+                        </div>
+                    </td>
+                </tr>`;
+        }).join('');
+
+        // Re-attach listeners to NEWLY injected expand buttons
+        tbody.querySelectorAll('.expand-btn').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const targetId = this.dataset.target;
+                const target   = document.getElementById(targetId);
+                const isOpen   = !target.classList.contains('d-none');
+                target.classList.toggle('d-none', isOpen);
+                this.querySelector('i').className = isOpen ? 'bi bi-chevron-right' : 'bi bi-chevron-down';
+                if (!isOpen) await loadOrderItems(parseInt(this.dataset.orderId, 10));
+            });
+        });
+
+        content.style.display = '';
+    } catch (err) {
+        loader.innerHTML = '<span class="text-danger small">Failed to load orders.</span>';
+    }
+}
 
 // ── Lazy-load order items via AJAX ────────────────────────────────────────────
 const loadedOrders = new Set();
