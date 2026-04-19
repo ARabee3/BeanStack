@@ -278,11 +278,12 @@ switch ($page) {
         $activeNav = 'manual-order';
         include __DIR__ . '/../views/admin/manual_order.php';
         break;
-
+    // ── Admin accesses the checks ─────────────────────────────────────────────────
     case 'checks':
         requireAdmin();
         include __DIR__ . '/../views/admin/checks.php';
         break;
+
     case 'my-orders':
         requireLogin();
         include __DIR__ . '/../views/orders/my_orders.php';
