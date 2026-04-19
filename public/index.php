@@ -153,14 +153,63 @@ switch ($page) {
         }
         exit;
 
+       // ── All users ─────────────────────────────────────────────────────────
     case 'users':
         requireAdmin();
-        include __DIR__ . '/../views/users/all_users.php';
+        UserController::index();        // fetches data + includes the view
         break;
+ 
+    // ── Add user form (GET) ───────────────────────────────────────────────
     case 'add-user':
         requireAdmin();
+        $user = null;                   // null = add mode
         include __DIR__ . '/../views/users/add_user.php';
         break;
+ 
+    // ── Store new user (POST) ─────────────────────────────────────────────
+    case 'store-user':
+        requireAdmin();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            UserController::store();
+        } else {
+            header('Location: ?page=add-user'); exit;
+        }
+        break;
+ 
+    // ── Edit user form (GET) ──────────────────────────────────────────────
+    case 'edit-user':
+        requireAdmin();
+        $id   = (int) ($_GET['id'] ?? 0);
+        $user = UserController::show($id);
+        if (!$user) {
+            $_SESSION['flash'] = ['type' => 'danger', 'msg' => 'User not found.'];
+            header('Location: ?page=users'); exit;
+        }
+        include __DIR__ . '/../views/users/add_user.php';
+        break;
+ 
+    // ── Update user (POST) ────────────────────────────────────────────────
+    case 'update-user':
+        requireAdmin();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            UserController::update((int) ($_GET['id'] ?? 0));
+        } else {
+            header('Location: ?page=users'); exit;
+        }
+        break;
+ 
+    // ── Delete user ───────────────────────────────────────────────────────
+    case 'delete-user':
+        requireAdmin();
+        UserController::delete((int) ($_GET['id'] ?? 0));
+        break;
+ 
+    // ── Toggle active status (AJAX-aware) ─────────────────────────────────
+    case 'toggle-user':
+        requireAdmin();
+        UserController::toggleActive((int) ($_GET['id'] ?? 0));
+        break;
+        
     case 'manual-order':
         requireAdmin();
         include __DIR__ . '/../views/admin/manual_order.php';
