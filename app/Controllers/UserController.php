@@ -258,6 +258,12 @@ class UserController
 
         // ── Validation ────────────────────────────────────────────────────
         $errors = [];
+
+        // Prevent self-demotion
+        if ($id === (int)($_SESSION['user_id'] ?? 0) && $role !== 'admin') {
+            $errors[] = "You are not allowed to leave this posotion! keep working!";
+        }
+
         if ($name === '')                               $errors[] = 'Full name is required.';
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'A valid email is required.';
         if ($location === '')                           $errors[] = 'Location is required.';
