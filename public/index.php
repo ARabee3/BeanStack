@@ -64,13 +64,95 @@ switch ($page) {
     case 'home':
         HomeController::index();
         break;
-    case 'products':
-        ProductController::index();
+
+    // Products Operations : 
+        case 'products':
+        requireLogin();                 // or requireAdmin() if only admins see it
+        ProductController::index();     // fetches data + includes the view itself
         break;
+ 
+    // ── Add product form (GET) ────────────────────────────────────────────
     case 'add-product':
         requireAdmin();
+        // Pass categories so the dropdown is populated
+        $categories = Database::connect()
+            ->query("SELECT id, name FROM categories ORDER BY name")
+            ->fetchAll(PDO::FETCH_ASSOC);
+        $product = null;                // null = "add" mode in the view
         include __DIR__ . '/../views/products/add_product.php';
         break;
+ 
+    // ── Store new product (POST) ──────────────────────────────────────────
+    case 'store-product':
+        requireAdmin();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            ProductController::store(); // validates, inserts, redirects
+        } else {
+            header('Location: ?page=add-product');
+            exit;
+        }
+        break;
+ 
+    // ── Edit product form (GET) ───────────────────────────────────────────
+    case 'edit-product':
+        requireAdmin();
+        $id      = (int) ($_GET['id'] ?? 0);
+        $product = ProductController::show($id);
+        if (!$product) {
+            $_SESSION['flash'] = ['type' => 'danger', 'msg' => 'Product not found.'];
+            header('Location: ?page=products'); exit;
+        }
+        $categories = Database::connect()
+            ->query("SELECT id, name FROM categories ORDER BY name")
+            ->fetchAll(PDO::FETCH_ASSOC);
+        include __DIR__ . '/../views/products/add_product.php';
+        break;
+ 
+    // ── Update product (POST) ─────────────────────────────────────────────
+    case 'update-product':
+        requireAdmin();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            ProductController::update((int) ($_GET['id'] ?? 0));
+        } else {
+            header('Location: ?page=products'); exit;
+        }
+        break;
+ 
+    // ── Soft-delete product ───────────────────────────────────────────────
+    case 'delete-product':
+        requireAdmin();
+        ProductController::delete((int) ($_GET['id'] ?? 0));
+        break;
+ 
+    // ── Toggle availability (supports AJAX) ───────────────────────────────
+    case 'toggle-product':
+        requireAdmin();
+        ProductController::toggle((int) ($_GET['id'] ?? 0));
+        break;
+ 
+    // ── Add category (AJAX only, called from the modal in add_product.php) ─
+    case 'add-category':
+        requireAdmin();
+        header('Content-Type: application/json');
+        $catName = trim($_POST['name'] ?? '');
+        if ($catName === '') {
+            http_response_code(422);
+            echo json_encode(['error' => 'Category name is required.']);
+            exit;
+        }
+        try {
+            $db   = Database::connect();
+            $stmt = $db->prepare("INSERT INTO categories (name) VALUES (:name)");
+            $stmt->execute([':name' => $catName]);
+            $newId = (int) $db->lastInsertId();
+            echo json_encode(['id' => $newId, 'name' => $catName]);
+        } catch (PDOException $e) {
+            // Duplicate name → categories.name has a UNIQUE constraint
+            http_response_code(422);
+            echo json_encode(['error' => "Category \"$catName\" already exists."]);
+        }
+        exit;
+
     case 'users':
         requireAdmin();
         include __DIR__ . '/../views/users/all_users.php';
