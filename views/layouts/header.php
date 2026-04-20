@@ -24,10 +24,12 @@ $sidebarItems = $isAdmin
         ['key' => 'orders', 'label' => 'Orders', 'href' => '?page=orders', 'icon' => 'bi-lightning-charge'],
         ['key' => 'checks', 'label' => 'Checks', 'href' => '?page=checks', 'icon' => 'bi-bar-chart-line'],
         ['key' => 'manual', 'label' => 'Manual Order', 'href' => '?page=manual-order', 'icon' => 'bi-clipboard-plus'],
+        ['key' => 'profile', 'label' => 'My Profile', 'href' => '?page=profile', 'icon' => 'bi-person-gear'],
     ]
     : [
         ['key' => 'home', 'label' => 'Home', 'href' => '?page=home', 'icon' => 'bi-house'],
         ['key' => 'myorders', 'label' => 'My Orders', 'href' => '?page=my-orders', 'icon' => 'bi-receipt'],
+        ['key' => 'profile', 'label' => 'My Profile', 'href' => '?page=profile', 'icon' => 'bi-person-gear'],
     ];
 ?>
 <!DOCTYPE html>

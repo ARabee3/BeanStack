@@ -29,6 +29,7 @@ spl_autoload_register(function ($class) {
 
 require_once __DIR__ . '/../app/Controllers/Auth/LoginController.php';
 require_once __DIR__ . '/../app/Controllers/Auth/RegisterController.php';
+require_once __DIR__ . '/../app/Controllers/ProfileController.php';
 
 // 4. Run migrations 
 require_once __DIR__ . '/../db/run_migrations.php';
@@ -63,6 +64,12 @@ switch ($page) {
         break;
     case 'home':
         HomeController::index();
+        break;
+    case 'profile':
+        ProfileController::index();
+        break;
+    case 'update-profile':
+        ProfileController::update();
         break;
 
     // Products Operations : 

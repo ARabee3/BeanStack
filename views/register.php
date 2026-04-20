@@ -252,26 +252,15 @@ $errors = $errors ?? [];
                         <i class="bi bi-building me-1"></i>Work Details
                     </p>
 
-                    <!-- Room No. + Ext. side by side -->
-                    <div class="row g-3 mb-4">
-                        <div class="col-6">
-                            <label class="form-label fw-semibold small" for="room">Room No. <span class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-door-closed text-muted"></i></span>
-                                <input type="text" class="form-control border-start-0 ps-0 <?= isset($errors['room']) ? 'is-invalid' : '' ?>"
-                                    name="room" id="room" placeholder="e.g. 2010"
-                                    value="<?= htmlspecialchars($_POST['room'] ?? '') ?>" required />
-                                <div class="invalid-feedback"><?= htmlspecialchars($errors['room'] ?? 'Required.') ?></div>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label fw-semibold small" for="ext">Extension (Ext.)</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-telephone text-muted"></i></span>
-                                <input type="text" class="form-control border-start-0 ps-0"
-                                    name="ext" id="ext" placeholder="e.g. 5605"
-                                    value="<?= htmlspecialchars($_POST['ext'] ?? '') ?>" />
-                            </div>
+                    <!-- Location -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold small" for="location">Location <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-geo-alt text-muted"></i></span>
+                            <input type="text" class="form-control border-start-0 ps-0 <?= isset($errors['location']) ? 'is-invalid' : '' ?>"
+                                name="location" id="location" placeholder="e.g. Room 2010, Floor 2"
+                                value="<?= htmlspecialchars($_POST['location'] ?? '') ?>" required />
+                            <div class="invalid-feedback"><?= htmlspecialchars($errors['location'] ?? 'Location is required.') ?></div>
                         </div>
                     </div>
 

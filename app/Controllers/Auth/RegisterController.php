@@ -17,11 +17,13 @@ class RegisterController
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
     $confirm = $_POST['confirm'] ?? '';
-    $room = trim($_POST['room'] ?? '');
+    $location = trim($_POST['location'] ?? '');
     $termsAccepted = isset($_POST['terms']);
 
     if ($name === '') {
       $result['errors']['name'] = 'Full name is required.';
+    } elseif (!preg_match("/^[a-zA-Z\s]{3,255}$/", $name)) {
+      $result['errors']['name'] = 'Name must be at least 3 characters and contain only letters and spaces.';
     }
 
     if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -36,8 +38,8 @@ class RegisterController
       $result['errors']['confirm'] = 'Passwords must match.';
     }
 
-    if ($room === '') {
-      $result['errors']['room'] = 'Room number is required.';
+    if ($location === '') {
+      $result['errors']['location'] = 'Location is required.';
     }
 
     if (!$termsAccepted) {
@@ -65,7 +67,7 @@ class RegisterController
         return $result;
       }
 
-      $locationId = self::resolveLocationId($conn, $room);
+      $locationId = self::resolveLocationId($conn, $location);
 
       $insertStmt = $conn->prepare(
         'INSERT INTO users (name, email, password, location_id, profile_pic, role, isActive)
@@ -95,10 +97,10 @@ class RegisterController
     return $result;
   }
 
-  private static function resolveLocationId(PDO $conn, string $room): ?int
+  private static function resolveLocationId(PDO $conn, string $locationDetails): ?int
   {
     $findStmt = $conn->prepare('SELECT id FROM locations WHERE details = :details LIMIT 1');
-    $findStmt->execute(['details' => $room]);
+    $findStmt->execute(['details' => $locationDetails]);
     $existing = $findStmt->fetch();
 
     if ($existing) {
@@ -106,7 +108,7 @@ class RegisterController
     }
 
     $insertStmt = $conn->prepare('INSERT INTO locations (details) VALUES (:details)');
-    $insertStmt->execute(['details' => $room]);
+    $insertStmt->execute(['details' => $locationDetails]);
 
     return (int) $conn->lastInsertId();
   }
@@ -150,7 +152,7 @@ class RegisterController
       return null;
     }
 
-    $uploadDir = __DIR__ . '/../../../uploads/profile_pictures';
+    $uploadDir = __DIR__ . '/../../../public/uploads/profile_pictures';
     if (!is_dir($uploadDir) && !mkdir($uploadDir, 0775, true) && !is_dir($uploadDir)) {
       $errors['picture'] = 'Could not prepare upload directory.';
       return null;
@@ -169,7 +171,7 @@ class RegisterController
 
   private static function deleteUploadedFile(string $relativePath): void
   {
-    $absolutePath = __DIR__ . '/../../../' . ltrim($relativePath, '/');
+    $absolutePath = __DIR__ . '/../../../public/' . ltrim($relativePath, '/');
     if (is_file($absolutePath)) {
       unlink($absolutePath);
     }

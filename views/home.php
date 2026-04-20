@@ -213,7 +213,7 @@ include __DIR__ . '/layouts/header.php';
                     <div class="alert alert-warning small py-2 mb-3">
                         <i class="bi bi-exclamation-triangle me-1"></i>
                         No location assigned to your account.
-                        Please contact an admin to set your location.
+                        Please <a href="?page=profile" class="alert-link">set your location</a> in your profile.
                     </div>
                     <!-- Hidden so confirmOrder() still reads it — value stays empty → blocked -->
                     <select class="d-none" id="orderRoom">
