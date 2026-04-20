@@ -116,9 +116,9 @@ include __DIR__ . '/../layouts/header.php';
 
 <!-- ── Users table ───────────────────────────────────────────────────────── -->
 <div class="page-card">
-    <div class="table-responsive">
+    <div class="table-responsive-stack">
         <table class="table table-hover align-middle mb-0" id="usersTable">
-            <thead class="table-dark">
+            <thead class="table-dark d-none d-sm-table-header-group">
                 <tr>
                     <th>#</th>
                     <th>Name</th>
@@ -148,10 +148,10 @@ include __DIR__ . '/../layouts/header.php';
                         $isActive = (bool) $u['isActive'];
                     ?>
                     <tr id="user-row-<?= (int)$u['id'] ?>">
-                        <td class="text-muted small"><?= $rowNum ?></td>
+                        <td data-label="#" class="text-muted small"><?= $rowNum ?></td>
 
                         <!-- Avatar + name -->
-                        <td>
+                        <td data-label="Name">
                             <div class="d-flex align-items-center gap-2">
                                 <?php if (!empty($u['profile_pic'])): ?>
                                     <img src="../public/<?= htmlspecialchars($u['profile_pic']) ?>"
@@ -168,10 +168,10 @@ include __DIR__ . '/../layouts/header.php';
                             </div>
                         </td>
 
-                        <td class="text-muted small"><?= htmlspecialchars($u['email']) ?></td>
+                        <td data-label="Email" class="text-muted small"><?= htmlspecialchars($u['email']) ?></td>
 
                         <!-- Location -->
-                        <td>
+                        <td data-label="Location">
                             <?php if (!empty($u['location'])): ?>
                                 <span class="text-muted small">
                                     <i class="bi bi-geo-alt me-1"></i><?= htmlspecialchars($u['location']) ?>
@@ -182,7 +182,7 @@ include __DIR__ . '/../layouts/header.php';
                         </td>
 
                         <!-- Role badge -->
-                        <td class="text-center">
+                        <td data-label="Role" class="text-center">
                             <span class="badge <?= $u['role'] === 'admin' ? 'bg-warning text-dark' : 'bg-light text-dark border' ?>">
                                 <i class="bi bi-<?= $u['role'] === 'admin' ? 'shield-fill' : 'person' ?> me-1"></i>
                                 <?= ucfirst($u['role']) ?>
@@ -190,7 +190,7 @@ include __DIR__ . '/../layouts/header.php';
                         </td>
 
                         <!-- Active toggle -->
-                        <td class="text-center">
+                        <td data-label="Status" class="text-center">
                             <button class="btn btn-sm border-0 fw-semibold px-2 py-1
                                            <?= $isActive ? 'btn-success' : 'btn-secondary' ?>"
                                     data-id="<?= (int)$u['id'] ?>"
@@ -202,8 +202,8 @@ include __DIR__ . '/../layouts/header.php';
                         </td>
 
                         <!-- Actions -->
-                        <td class="text-center">
-                            <div class="d-flex justify-content-center gap-2">
+                        <td data-label="Actions" class="text-center">
+                            <div class="d-flex justify-content-center gap-2 flex-wrap">
                                 <a href="?page=edit-user&id=<?= (int)$u['id'] ?>"
                                    class="btn btn-sm btn-outline-primary px-2">
                                     <i class="bi bi-pencil me-1"></i>Edit

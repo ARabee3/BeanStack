@@ -118,9 +118,9 @@ include __DIR__ . '/../layouts/header.php';
 
 <!-- ── Products table ────────────────────────────────────────────────── -->
 <div class="page-card">
-    <div class="table-responsive">
+    <div class="table-responsive-stack">
         <table class="table table-hover align-middle mb-0" id="productsTable">
-            <thead class="table-dark">
+            <thead class="table-dark d-none d-sm-table-header-group">
                 <tr>
                     <th>#</th>
                     <th>Product</th>
@@ -146,17 +146,17 @@ include __DIR__ . '/../layouts/header.php';
                         $rowNum = ($currentPage - 1) * 10 + $i + 1;
                     ?>
                     <tr id="row-<?= (int)$p['id'] ?>">
-                        <td class="text-muted small"><?= $rowNum ?></td>
-                        <td><span class="fw-semibold"><?= htmlspecialchars($p['name']) ?></span></td>
-                        <td>
+                        <td data-label="#" class="text-muted small"><?= $rowNum ?></td>
+                        <td data-label="Product"><span class="fw-semibold"><?= htmlspecialchars($p['name']) ?></span></td>
+                        <td data-label="Category">
                             <span class="badge bg-light text-dark border">
                                 <?= htmlspecialchars($p['category'] ?? '—') ?>
                             </span>
                         </td>
-                        <td class="text-end fw-semibold">
+                        <td data-label="Price" class="text-end fw-semibold">
                             <?= number_format((float)$p['price'], 2) ?> EGP
                         </td>
-                        <td class="text-center">
+                        <td data-label="Image" class="text-center">
                             <?php if (!empty($p['image'])): ?>
                                 <img src="../public/<?= htmlspecialchars($p['image']) ?>"
                                      alt="<?= htmlspecialchars($p['name']) ?>"
@@ -170,7 +170,7 @@ include __DIR__ . '/../layouts/header.php';
                                 </div>
                             <?php endif; ?>
                         </td>
-                        <td class="text-center">
+                        <td data-label="Actions" class="text-center">
                             <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap">
 
                                 <!-- Toggle availability (AJAX) -->

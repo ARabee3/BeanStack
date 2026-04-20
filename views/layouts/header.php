@@ -48,24 +48,28 @@ $sidebarItems = $isAdmin
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f8f9fa;
+            color: #212529;
         }
 
+        /* ── Sidebar ─────────────────────────────────────────────────── */
         .layout-sidebar {
             width: 240px;
             min-height: calc(100vh - 56px);
             background: #1a1d23;
-            transition: width .2s;
+            transition: all .2s ease-in-out;
             flex-shrink: 0;
+            z-index: 1020;
         }
 
         .layout-sidebar .nav-link {
             color: #adb5bd;
             border-radius: .375rem;
-            margin: 1px 0;
+            margin: 2px 8px;
             font-size: .875rem;
             display: flex;
             align-items: center;
-            gap: .5rem;
+            gap: .75rem;
+            transition: all .15s;
         }
 
         .layout-sidebar .nav-link:hover,
@@ -76,13 +80,17 @@ $sidebarItems = $isAdmin
 
         .layout-sidebar .nav-link.active {
             font-weight: 600;
+            background: rgba(217, 119, 6, .15);
+            color: #fbbf24;
         }
 
         .layout-sidebar .nav-link i {
             width: 20px;
             text-align: center;
+            font-size: 1.1rem;
         }
 
+        /* ── Topbar ─────────────────────────────────────────────────── */
         .topbar {
             background: #fff;
             border-bottom: 1px solid #e9ecef;
@@ -91,9 +99,9 @@ $sidebarItems = $isAdmin
 
         .topbar .brand {
             font-weight: 700;
-            font-size: 1.1rem;
-            letter-spacing: -.01em;
-            color: #212529;
+            font-size: 1.25rem;
+            letter-spacing: -.02em;
+            color: #1a1d23;
         }
 
         .topbar .brand span {
@@ -111,112 +119,139 @@ $sidebarItems = $isAdmin
             display: flex;
             align-items: center;
             justify-content: center;
+            box-shadow: 0 2px 4px rgba(217, 119, 6, .2);
         }
 
+        /* ── Main Layout ─────────────────────────────────────────────── */
         #content {
             flex: 1;
             overflow-x: hidden;
+            background-color: #f8f9fa;
         }
 
         .page-card {
             background: #fff;
             border: 1px solid #e9ecef;
             border-radius: .75rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .05);
+            overflow: hidden;
         }
 
         .page-card-header {
             border-bottom: 1px solid #e9ecef;
             padding: 1rem 1.25rem;
+            background-color: #fff;
         }
 
+        /* ── Components ─────────────────────────────────────────────── */
         .product-card {
             cursor: pointer;
-            transition: box-shadow .15s, transform .15s;
+            transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 0.75rem !important;
         }
 
         .product-card:hover {
-            box-shadow: 0 4px 16px rgba(0, 0, 0, .1);
-            transform: translateY(-2px);
-        }
-
-        .product-emoji {
-            font-size: 2.5rem;
-            line-height: 1;
-        }
-
-        .price-badge {
-            font-size: .7rem;
-            font-weight: 700;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+            transform: translateY(-4px);
+            border-color: #fbbf24 !important;
         }
 
         #orderPanel {
+            width: 100%;
             min-width: 280px;
-            max-width: 280px;
+            max-width: 100%;
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
         }
 
-        .table> :not(caption)>*>* {
+        @media (min-width: 992px) {
+            #orderPanel {
+                min-width: 300px;
+                max-width: 400px;
+            }
+        }
+
+        .table > :not(caption) > * > * {
+            padding: 1rem 0.75rem;
             vertical-align: middle;
         }
 
-        .detail-row td {
-            background: #f8f9fa !important;
+        .price-badge {
+            font-size: .75rem;
+            font-weight: 700;
+            padding: .35em .65em;
         }
 
-        .page-link {
-            color: #d97706;
+        /* ── Custom Scrollbar ────────────────────────────────────────── */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
         }
 
-        .page-item.active .page-link {
-            background: #d97706;
-            border-color: #d97706;
-            color: #fff;
-        }
-
-        .badge-processing {
-            background: #fff3cd;
-            color: #664d03;
-        }
-
-        .badge-delivery {
-            background: #cff4fc;
-            color: #055160;
-        }
-
-        .badge-done {
-            background: #d1e7dd;
-            color: #0a3622;
-        }
-
-        .badge-cancelled {
-            background: #f8d7da;
-            color: #58151c;
-        }
-
-        .badge-available {
-            background: #d1e7dd;
-            color: #0a3622;
-        }
-
-        .badge-unavailable {
-            background: #f8d7da;
-            color: #58151c;
-        }
-
-        .form-control:focus,
-        .form-select:focus {
-            border-color: #d97706;
-            box-shadow: 0 0 0 .2rem rgba(217, 119, 6, .2);
-        }
-
+        /* ── Responsive Overrides ─────────────────────────────────────── */
         @media (max-width: 767.98px) {
-            #orderPanel {
-                min-width: 100%;
-                max-width: 100%;
+            .topbar .brand {
+                font-size: 1.1rem;
+            }
+            
+            .page-card {
+                border-radius: 0.5rem;
             }
 
-            .layout-sidebar {
-                min-height: auto;
+            .main-content-padding {
+                padding: 1rem !important;
+            }
+            
+            #orderPanel {
+                position: relative !important;
+                top: 0 !important;
+                margin-bottom: 1.5rem;
+                max-height: none;
+            }
+        }
+
+        /* Utility for responsive tables on very small screens */
+        @media (max-width: 575.98px) {
+            .table-responsive-stack .table,
+            .table-responsive-stack tbody,
+            .table-responsive-stack tr,
+            .table-responsive-stack td {
+                display: block;
                 width: 100%;
+            }
+            .table-responsive-stack thead {
+                display: none;
+            }
+            .table-responsive-stack tr {
+                margin-bottom: 1rem;
+                border: 1px solid #e9ecef;
+                border-radius: 0.5rem;
+                padding: 0.5rem;
+                background: #fff;
+            }
+            .table-responsive-stack td {
+                text-align: left !important;
+                border: none;
+                padding: 0.25rem 0.5rem;
+            }
+            .table-responsive-stack td::before {
+                content: attr(data-label);
+                font-weight: 700;
+                display: block;
+                font-size: 0.75rem;
+                color: #64748b;
+                text-transform: uppercase;
+                margin-bottom: 0.1rem;
             }
         }
     </style>

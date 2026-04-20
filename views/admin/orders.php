@@ -150,9 +150,9 @@ include __DIR__ . '/../layouts/header.php';
         <div class="page-card" id="orderCard_<?= (int)$order['id'] ?>">
 
             <!-- ── Order header row ──────────────────────────────────────── -->
-            <div class="table-responsive">
-                <table class="table table-bordered mb-0" style="min-width:580px;">
-                    <thead class="table-secondary">
+            <div class="table-responsive-stack">
+                <table class="table table-bordered mb-0">
+                    <thead class="table-secondary d-none d-sm-table-header-group">
                         <tr>
                             <th class="fw-semibold small">#ID</th>
                             <th class="fw-semibold small">Date</th>
@@ -164,22 +164,22 @@ include __DIR__ . '/../layouts/header.php';
                     </thead>
                     <tbody>
                         <tr>
-                            <td class="small fw-bold text-muted">#<?= (int)$order['id'] ?></td>
-                            <td class="small">
+                            <td data-label="#ID" class="small fw-bold text-muted">#<?= (int)$order['id'] ?></td>
+                            <td data-label="Date" class="small">
                                 <?= $order['order_date']
                                     ? date('d M Y, h:i A', strtotime($order['order_date']))
                                     : '—' ?>
                             </td>
-                            <td>
+                            <td data-label="Customer">
                                 <div class="d-flex align-items-center gap-1">
-                                    <i class="bi bi-person-circle text-muted"></i>
+                                    <i class="bi bi-person-circle text-muted d-none d-sm-inline"></i>
                                     <span class="fw-semibold"><?= htmlspecialchars($order['user_name']) ?></span>
                                 </div>
                                 <div class="text-muted" style="font-size:.72rem;">
                                     <?= htmlspecialchars($order['user_email']) ?>
                                 </div>
                             </td>
-                            <td class="small text-muted">
+                            <td data-label="Location" class="small text-muted">
                                 <?php
                                 $loc = $order['location_snapshot'] ?? $order['location'] ?? null;
                                 echo $loc ? htmlspecialchars($loc) : '<span class="fst-italic">—</span>';
@@ -187,7 +187,7 @@ include __DIR__ . '/../layouts/header.php';
                             </td>
 
                             <!-- Status badge — updates via JS -->
-                            <td class="text-center">
+                            <td data-label="Status" class="text-center">
                                 <span class="badge rounded-pill <?= $cfg['bg'] ?>"
                                       id="statusBadge_<?= (int)$order['id'] ?>">
                                     <i class="bi <?= $cfg['icon'] ?> me-1"></i>
@@ -196,7 +196,7 @@ include __DIR__ . '/../layouts/header.php';
                             </td>
 
                             <!-- Action buttons -->
-                            <td class="text-center">
+                            <td data-label="Actions" class="text-center">
                                 <div class="d-flex justify-content-center gap-1 flex-wrap"
                                      id="actionCell_<?= (int)$order['id'] ?>">
                                     <?php if ($transitions): ?>

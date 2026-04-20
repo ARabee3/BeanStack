@@ -199,30 +199,30 @@ if (isset($_GET['ajax'])) {
 
             echo "
             <tr>
-                <td>
+                <td data-label='Expand'>
                     <button class='btn btn-sm btn-light border p-0 px-1 expand-row-btn'
                             data-target='detail_{$id}'
                             style='width:24px;line-height:1.4;'>
                         <i class='bi bi-chevron-right' style='font-size:.75rem;'></i>
                     </button>
                 </td>
-                <td>
+                <td data-label='Order'>
                     <div class='fw-semibold small'>{$date}</div>
                     <div class='text-muted' style='font-size:.72rem;'>
                         #$id · {$loc}
                     </div>
                 </td>
-                <td>
+                <td data-label='Status'>
                     <span class='badge rounded-pill bg-{$badge}'>
                         <i class='bi {$icon} me-1' style='font-size:.65rem;'></i>
                         {$label}
                     </span>
                 </td>
-                <td class='text-end fw-bold text-warning'>{$amount} EGP</td>
-                <td class='text-center'>{$actionBtn}</td>
+                <td data-label='Amount' class='text-end fw-bold text-warning'>{$amount} EGP</td>
+                <td data-label='Action' class='text-center'>{$actionBtn}</td>
             </tr>
             <tr id='detail_{$id}' class='d-none bg-light'>
-                <td colspan='5'>
+                <td colspan='5' class='p-0 p-sm-3'>
                     <div class='p-3'>
                         <div class='d-flex gap-3 flex-wrap'>{$itemsHtml}</div>
                         {$notesHtml}
@@ -351,9 +351,9 @@ include __DIR__ . '/../layouts/header.php';
 
 <!-- ── Orders table ───────────────────────────────────────────────────────────── -->
 <div class="page-card">
-    <div class="table-responsive">
+    <div class="table-responsive-stack">
         <table class="table table-hover align-middle mb-0">
-            <thead class="table-dark">
+            <thead class="table-dark d-none d-sm-table-header-group">
                 <tr>
                     <th style="width:36px;"></th>
                     <th>Order</th>

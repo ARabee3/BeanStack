@@ -273,9 +273,9 @@ include __DIR__ . '/../layouts/header.php';
 
 <!-- ── Main table ────────────────────────────────────────────────────────── -->
 <div class="page-card">
-    <div class="table-responsive">
+    <div class="table-responsive-stack">
         <table class="table table-hover align-middle mb-0" id="checksTable">
-            <thead class="table-dark">
+            <thead class="table-dark d-none d-sm-table-header-group">
                 <tr>
                     <th style="width:36px;"></th>
                     <th>Client</th>
@@ -305,7 +305,7 @@ include __DIR__ . '/../layouts/header.php';
 
                     <!-- ── Level 1: User row ─────────────────────────────── -->
                     <tr class="fw-semibold" id="userRow_<?= $userId ?>">
-                        <td>
+                        <td data-label="Expand">
                             <button class="btn btn-sm btn-light border p-0 px-1 expand-btn"
                                     data-target="userDetail_<?= $userId ?>"
                                     data-user-id="<?= $userId ?>"
@@ -313,7 +313,7 @@ include __DIR__ . '/../layouts/header.php';
                                 <i class="bi bi-chevron-right" style="font-size:.75rem;"></i>
                             </button>
                         </td>
-                        <td>
+                        <td data-label="Client">
                             <div class="d-flex align-items-center gap-2">
                                 <?php if (!empty($u['profile_pic'])): ?>
                                     <img src="/<?= htmlspecialchars($u['profile_pic']) ?>"
@@ -334,36 +334,38 @@ include __DIR__ . '/../layouts/header.php';
                                 </div>
                             </div>
                         </td>
-                        <td class="text-center">
+                        <td data-label="Orders" class="text-center">
                             <span class="badge bg-light text-dark border">
                                 <?= (int)$u['order_count'] ?>
                             </span>
                         </td>
-                        <td class="text-end text-warning fw-bold">
+                        <td data-label="Total Amount" class="text-end text-warning fw-bold">
                             <?= number_format((float)$u['total_amount'], 2) ?> EGP
                         </td>
                     </tr>
 
                     <!-- ── Level 2: Orders for this user (Lazy Loaded) ───── -->
                     <tr id="userDetail_<?= $userId ?>" class="d-none">
-                        <td colspan="4" class="p-0 ps-4 bg-light">
+                        <td colspan="4" class="p-0 ps-sm-4 bg-light">
                             <div id="ordersLoader_<?= $userId ?>" class="text-center py-3 text-muted small">
                                 <span class="spinner-border spinner-border-sm me-1"></span> Loading orders…
                             </div>
                             <div id="ordersContent_<?= $userId ?>" style="display:none;">
-                                <table class="table table-sm table-bordered mb-0">
-                                    <thead class="table-secondary">
-                                        <tr>
-                                            <th style="width:36px;"></th>
-                                            <th>Order Date</th>
-                                            <th>Location</th>
-                                            <th class="text-end">Amount</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="ordersTableBody_<?= $userId ?>">
-                                        <!-- Orders injected here -->
-                                    </tbody>
-                                </table>
+                                <div class="table-responsive-stack">
+                                    <table class="table table-sm table-bordered mb-0">
+                                        <thead class="table-secondary d-none d-sm-table-header-group">
+                                            <tr>
+                                                <th style="width:36px;"></th>
+                                                <th>Order Date</th>
+                                                <th>Location</th>
+                                                <th class="text-end">Amount</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="ordersTableBody_<?= $userId ?>">
+                                            <!-- Orders injected here -->
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </td>
                     </tr>
@@ -466,7 +468,7 @@ async function loadUserOrders(userId) {
 
             return `
                 <tr id="orderRow_${orderId}">
-                    <td>
+                    <td data-label="Expand">
                         <button class="btn btn-sm btn-light border p-0 px-1 expand-btn"
                                 data-target="orderDetail_${orderId}"
                                 data-order-id="${orderId}"
@@ -474,11 +476,11 @@ async function loadUserOrders(userId) {
                             <i class="bi bi-chevron-right" style="font-size:.75rem;"></i>
                         </button>
                     </td>
-                    <td class="small fw-semibold">
+                    <td data-label="Order Date" class="small fw-semibold">
                         <i class="bi bi-receipt me-1 text-muted"></i>#${orderId} &nbsp;·&nbsp; ${dateStr}
                     </td>
-                    <td class="small text-muted">${escHtml(loc)}</td>
-                    <td class="text-end small fw-semibold">${parseFloat(order.total_price).toFixed(2)} EGP</td>
+                    <td data-label="Location" class="small text-muted">${escHtml(loc)}</td>
+                    <td data-label="Amount" class="text-end small fw-semibold">${parseFloat(order.total_price).toFixed(2)} EGP</td>
                 </tr>
                 <tr id="orderDetail_${orderId}" class="d-none">
                     <td colspan="4" class="bg-white p-3">
