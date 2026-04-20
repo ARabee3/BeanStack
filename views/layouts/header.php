@@ -158,16 +158,26 @@ $sidebarItems = $isAdmin
 
         #orderPanel {
             width: 100%;
-            min-width: 280px;
-            max-width: 100%;
             max-height: calc(100vh - 100px);
             overflow-y: auto;
+            position: sticky;
+            top: 80px;
         }
 
-        @media (min-width: 992px) {
+        /* Ensure the panel doesn't look too stretched on very wide screens */
+        @media (min-width: 1400px) {
             #orderPanel {
-                min-width: 300px;
-                max-width: 400px;
+                max-width: 360px;
+                margin-left: auto;
+            }
+        }
+
+        @media (max-width: 991.98px) {
+            #orderPanel {
+                position: relative !important;
+                top: 0 !important;
+                max-height: none;
+                margin-bottom: 2rem;
             }
         }
 

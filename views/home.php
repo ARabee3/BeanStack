@@ -39,7 +39,7 @@ include __DIR__ . '/layouts/header.php';
         <!-- ══════════════════════════════════════════
              LEFT — Product grid (col-lg-9)
         ══════════════════════════════════════════ -->
-        <div class="col-12 col-lg-9 order-2 order-lg-1">
+        <div class="col-12 col-lg-9 order-1">
 
             <!-- Search bar -->
             <div class="d-flex align-items-center justify-content-between mb-3 gap-2 flex-wrap">
@@ -311,21 +311,21 @@ function renderCart() {
         grand += line;
 
         list.insertAdjacentHTML('beforeend', `
-            <div class="d-flex align-items-center justify-content-between
-                        border-bottom py-2 gap-2">
-                <span class="small fw-semibold text-truncate"
-                      style="max-width:110px;"
-                      title="${item.name}">${item.name}</span>
-                <div class="d-flex align-items-center gap-1 flex-shrink-0">
-                    <button class="btn btn-sm btn-light px-2 py-0 lh-1"
+            <div class="d-flex align-items-center justify-content-between border-bottom py-2 gap-2">
+                <div class="flex-grow-1 min-w-0">
+                    <div class="small fw-semibold text-truncate" title="${item.name}">${item.name}</div>
+                    <div class="text-muted" style="font-size: .7rem;">${item.price.toFixed(2)} EGP</div>
+                </div>
+                <div class="d-flex align-items-center gap-1 flex-shrink-0 mx-2">
+                    <button class="btn btn-sm btn-light border px-2 py-0 lh-1"
                             onclick="changeQty(${id}, -1)">−</button>
-                    <span class="fw-bold small">${item.qty}</span>
-                    <button class="btn btn-sm btn-light px-2 py-0 lh-1"
+                    <span class="fw-bold small" style="min-width: 20px; text-align: center;">${item.qty}</span>
+                    <button class="btn btn-sm btn-light border px-2 py-0 lh-1"
                             onclick="changeQty(${id},  1)">+</button>
                 </div>
-                <span class="small text-muted flex-shrink-0">
-                    ${line.toFixed(2)} EGP
-                </span>
+                <div class="small fw-bold text-end flex-shrink-0" style="min-width: 65px;">
+                    ${line.toFixed(2)}
+                </div>
             </div>`);
     });
 
