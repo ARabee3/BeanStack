@@ -29,19 +29,30 @@ include __DIR__ . '/layouts/header.php';
                         <?php unset($_SESSION['flash']); ?>
                     <?php endif; ?>
 
-                    <form action="?page=update-profile" method="POST" class="needs-validation" novalidate>
+                    <form action="?page=update-profile" method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
                         
                         <div class="text-center mb-4">
-                            <?php if (!empty($user['profile_pic'])): ?>
-                                <img src="<?= htmlspecialchars($user['profile_pic']) ?>" 
-                                     class="rounded-circle border shadow-sm mb-3" 
-                                     style="width:120px;height:120px;object-fit:cover;" />
-                            <?php else: ?>
-                                <div class="bg-light rounded-circle border d-flex align-items-center justify-content-center text-muted mx-auto mb-3" 
-                                     style="width:120px;height:120px;font-size:3rem;">
-                                    <i class="bi bi-person"></i>
-                                </div>
-                            <?php endif; ?>
+                            <div class="position-relative d-inline-block">
+                                <?php if (!empty($user['profile_pic'])): ?>
+                                    <img src="<?= htmlspecialchars($user['profile_pic']) ?>" 
+                                         id="profilePreview"
+                                         class="rounded-circle border shadow-sm mb-3" 
+                                         style="width:120px;height:120px;object-fit:cover;" />
+                                <?php else: ?>
+                                    <div id="profilePlaceholder" 
+                                         class="bg-light rounded-circle border d-flex align-items-center justify-content-center text-muted mx-auto mb-3" 
+                                         style="width:120px;height:120px;font-size:3rem;">
+                                        <i class="bi bi-person"></i>
+                                    </div>
+                                    <img id="profilePreview" 
+                                         class="rounded-circle border shadow-sm mb-3 d-none" 
+                                         style="width:120px;height:120px;object-fit:cover;" />
+                                <?php endif; ?>
+                                <label for="picture" class="btn btn-sm btn-dark rounded-circle position-absolute bottom-0 end-0 mb-3 me-1 shadow" title="Change Picture">
+                                    <i class="bi bi-camera-fill"></i>
+                                </label>
+                                <input type="file" name="picture" id="picture" class="d-none" accept="image/*" onchange="previewProfilePic(this)">
+                            </div>
                             <h5 class="fw-bold mb-0"><?= htmlspecialchars($user['name'] ?? 'User') ?></h5>
                             <p class="text-muted small"><?= htmlspecialchars($user['email'] ?? '') ?></p>
                         </div>
@@ -88,6 +99,18 @@ include __DIR__ . '/layouts/header.php';
 </div>
 
 <script>
+function previewProfilePic(input) {
+    const file = input.files && input.files[0] ? input.files[0] : null;
+    const preview = document.getElementById('profilePreview');
+    const placeholder = document.getElementById('profilePlaceholder');
+
+    if (!file || !preview) return;
+
+    preview.src = URL.createObjectURL(file);
+    preview.classList.remove('d-none');
+    if (placeholder) placeholder.classList.add('d-none');
+}
+
 (function() {
     'use strict';
     const forms = document.querySelectorAll('.needs-validation');
